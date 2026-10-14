@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'theme/app_theme.dart';
+import '../widgets/ui/pulso_waveform.dart';
+
 class PulsoApp extends StatelessWidget {
   const PulsoApp({super.key});
 
@@ -8,17 +11,24 @@ class PulsoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pulso',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: AppTheme.darkTheme,
       home: const Scaffold(
-        backgroundColor: Colors.black,
         body: Center(
-          child: Text(
-            'Pulso',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PulsoWaveform(width: 80, height: 80),
+              SizedBox(height: 16),
+              Text(
+                'Pulso',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
         ),
       ),
