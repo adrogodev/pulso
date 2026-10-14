@@ -1,0 +1,36 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    - avoid_print
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    - unawaited_futures
+    - unnecessary_late
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_empty_else
+    - avoid_relative_lib_imports
+    - avoid_types_as_parameter_names
+    - no_duplicate_case_values
+    - use_key_in_widget_constructors
