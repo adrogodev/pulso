@@ -202,5 +202,40 @@ void main() {
       await notifier.toggleShuffle();
       expect(mockAudioService.isShuffle, isFalse);
     });
+
+    test('reordena elementos de la cola adecuadamente', () async {
+      final notifier = container.read(playbackNotifierProvider.notifier);
+      await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+
+      // Mover trackA al final (índice 0 a índice 2)
+      await notifier.reorderQueue(0, 2);
+
+      final state = container.read(playbackNotifierProvider);
+      expect(state.queue.map((t) => t.title), ['Pista Beta', 'Pista Alfa']);
+      expect(state.currentIndex, 1);
+    });
+
+    test('elimina una pista de la cola y actualiza el estado', () async {
+      final notifier = container.read(playbackNotifierProvider.notifier);
+      await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+
+      // Eliminar la segunda pista
+      await notifier.removeFromQueue(1);
+
+      final state = container.read(playbackNotifierProvider);
+      expect(state.queue.length, 1);
+      expect(state.queue.first.title, 'Pista Alfa');
+    });
+
+    test('vacía la cola y detiene el reproductor', () async {
+      final notifier = container.read(playbackNotifierProvider.notifier);
+      await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+
+      await notifier.clearQueue();
+
+      final state = container.read(playbackNotifierProvider);
+      expect(state.queue, isEmpty);
+      expect(state.currentTrack, isNull);
+    });
   });
 }

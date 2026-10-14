@@ -170,4 +170,81 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
   Future<void> setVolume(double volume) async {
     await _audioService.setVolume(volume);
   }
+
+  Future<void> reorderQueue(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 ||
+        oldIndex >= state.queue.length ||
+        newIndex < 0 ||
+        newIndex > state.queue.length) {
+      return;
+    }
+
+    final newQueue = List<Track>.from(state.queue);
+    var adjustedNewIndex = newIndex;
+    if (oldIndex < adjustedNewIndex) {
+      adjustedNewIndex -= 1;
+    }
+
+    final movedItem = newQueue.removeAt(oldIndex);
+    newQueue.insert(adjustedNewIndex, movedItem);
+
+    // Identificar nueva posición de la pista en reproducción
+    final currentId = state.currentTrack?.id;
+    final updatedCurrentIndex = newQueue.indexWhere((t) => t.id == currentId);
+    final safeIndex = updatedCurrentIndex >= 0 ? updatedCurrentIndex : 0;
+
+    state = state.copyWith(queue: newQueue, currentIndex: safeIndex);
+
+    await _audioService.setQueue(newQueue, initialIndex: safeIndex);
+  }
+
+  Future<void> removeFromQueue(int index) async {
+    if (index < 0 || index >= state.queue.length) return;
+
+    final newQueue = List<Track>.from(state.queue);
+    final isRemovingCurrent = index == state.currentIndex;
+
+    newQueue.removeAt(index);
+
+    if (newQueue.isEmpty) {
+      await clearQueue();
+      return;
+    }
+
+    var newCurrentIndex = state.currentIndex;
+    if (isRemovingCurrent) {
+      if (newCurrentIndex >= newQueue.length) {
+        newCurrentIndex = 0;
+      }
+      final newCurrentTrack = newQueue[newCurrentIndex];
+      state = state.copyWith(
+        queue: newQueue,
+        currentIndex: newCurrentIndex,
+        currentTrack: newCurrentTrack,
+        duration: newCurrentTrack.duration,
+      );
+      await _audioService.setQueue(newQueue, initialIndex: newCurrentIndex);
+      if (state.isPlaying) {
+        await _audioService.play();
+      }
+    } else {
+      if (index < state.currentIndex) {
+        newCurrentIndex -= 1;
+      }
+      state = state.copyWith(queue: newQueue, currentIndex: newCurrentIndex);
+      await _audioService.setQueue(newQueue, initialIndex: newCurrentIndex);
+    }
+  }
+
+  Future<void> clearQueue() async {
+    await _audioService.stop();
+    state = state.copyWith(
+      queue: const [],
+      clearCurrentTrack: true,
+      currentIndex: 0,
+      position: Duration.zero,
+      duration: Duration.zero,
+      status: AppPlayerStatus.idle,
+    );
+  }
 }
