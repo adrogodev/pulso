@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -11,9 +12,24 @@ import 'audio_player_service.dart';
 class JustAudioPlayerService implements AudioPlayerService {
   final AudioPlayer _player;
   List<Track> _currentTracks = [];
+  StreamSubscription<void>? _noisySubscription;
 
   JustAudioPlayerService({AudioPlayer? player})
-    : _player = player ?? AudioPlayer();
+    : _player = player ?? AudioPlayer() {
+    unawaited(_initAudioSession());
+  }
+
+  Future<void> _initAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      _noisySubscription = session.becomingNoisyEventStream.listen((_) {
+        pause();
+      });
+    } catch (e) {
+      debugPrint('Error configurando AudioSession: $e');
+    }
+  }
 
   @override
   Stream<AppPlayerStatus> get statusStream {
@@ -176,6 +192,7 @@ class JustAudioPlayerService implements AudioPlayerService {
 
   @override
   Future<void> dispose() async {
+    await _noisySubscription?.cancel();
     await _player.dispose();
   }
 }

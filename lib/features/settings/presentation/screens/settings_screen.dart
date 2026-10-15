@@ -159,7 +159,7 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.restoreLastSession,
                   onChanged: (val) =>
                       settingsNotifier.setRestoreLastSession(val),
-                  activeColor: AppColors.textPrimary,
+                  activeThumbColor: AppColors.textPrimary,
                   title: const Text(
                     'Recordar última sesión',
                     style: AppTypography.bodyLarge,
@@ -174,7 +174,7 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.autoRescanOnLaunch,
                   onChanged: (val) =>
                       settingsNotifier.setAutoRescanOnLaunch(val),
-                  activeColor: AppColors.textPrimary,
+                  activeThumbColor: AppColors.textPrimary,
                   title: const Text(
                     'Reescanear al abrir',
                     style: AppTypography.bodyLarge,

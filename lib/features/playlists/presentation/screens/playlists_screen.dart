@@ -162,7 +162,7 @@ class PlaylistsScreen extends ConsumerWidget {
                   ),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             PlaylistDetailScreen(playlist: playlist),
                       ),
@@ -179,7 +179,7 @@ class PlaylistsScreen extends ConsumerWidget {
     PlaylistsNotifier notifier,
   ) {
     final controller = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Nueva lista de reproducción'),
@@ -220,7 +220,7 @@ class PlaylistsScreen extends ConsumerWidget {
     Playlist playlist,
   ) {
     final controller = TextEditingController(text: playlist.name);
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Renombrar lista'),
@@ -260,7 +260,7 @@ class PlaylistsScreen extends ConsumerWidget {
     PlaylistsNotifier notifier,
     Playlist playlist,
   ) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar lista?'),

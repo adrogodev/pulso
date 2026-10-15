@@ -105,7 +105,7 @@ class AddToPlaylistDialog extends ConsumerWidget {
   ) {
     final textController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Nueva lista', style: AppTypography.titleMedium),

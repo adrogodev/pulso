@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pulso/core/result/result.dart';
 import 'package:pulso/features/favorites/presentation/providers/favorites_notifier.dart';
 
 import '../../data/repositories/settings_repository_impl.dart';
@@ -28,8 +27,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
     final autoRescanPref = await _repo.getPreference('auto_rescan_on_launch');
 
     state = state.copyWith(
-      restoreLastSession: restorePref != 'false',
-      autoRescanOnLaunch: autoRescanPref != 'false',
+      restoreLastSession: restorePref.dataOrNull != 'false',
+      autoRescanOnLaunch: autoRescanPref.dataOrNull != 'false',
     );
   }
 
