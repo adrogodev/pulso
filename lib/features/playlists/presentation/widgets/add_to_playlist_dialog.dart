@@ -12,6 +12,13 @@ class AddToPlaylistDialog extends ConsumerWidget {
 
   const AddToPlaylistDialog({super.key, required this.track});
 
+  static Future<void> show(BuildContext context, {required Track track}) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AddToPlaylistDialog(track: track),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playlists = ref.watch(playlistsNotifierProvider);

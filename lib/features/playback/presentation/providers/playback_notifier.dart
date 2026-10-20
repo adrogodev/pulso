@@ -236,6 +236,36 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     }
   }
 
+  Future<void> playTracks(List<Track> tracks, {int initialIndex = 0}) async {
+    if (tracks.isEmpty) return;
+    final safeIndex = (initialIndex >= 0 && initialIndex < tracks.length)
+        ? initialIndex
+        : 0;
+    await playTrack(tracks[safeIndex], inQueue: tracks);
+  }
+
+  Future<void> playNext(Track track) async {
+    if (state.queue.isEmpty) {
+      await playTrack(track);
+      return;
+    }
+    final newQueue = List<Track>.from(state.queue);
+    final insertIndex = (state.currentIndex + 1).clamp(0, newQueue.length);
+    newQueue.insert(insertIndex, track);
+    state = state.copyWith(queue: newQueue);
+    await _audioService.setQueue(newQueue, initialIndex: state.currentIndex);
+  }
+
+  Future<void> addToQueue(Track track) async {
+    if (state.queue.isEmpty) {
+      await playTrack(track);
+      return;
+    }
+    final newQueue = List<Track>.from(state.queue)..add(track);
+    state = state.copyWith(queue: newQueue);
+    await _audioService.setQueue(newQueue, initialIndex: state.currentIndex);
+  }
+
   Future<void> clearQueue() async {
     await _audioService.stop();
     state = state.copyWith(
