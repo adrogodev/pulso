@@ -37,9 +37,7 @@ class ArtistDetailScreen extends ConsumerWidget {
 
     final tracks =
         initialTracks ??
-        libraryState.tracks
-            .where((t) => t.artist == artist.name)
-            .toList();
+        libraryState.tracks.where((t) => t.artist == artist.name).toList();
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
