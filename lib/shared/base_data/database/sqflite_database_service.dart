@@ -153,7 +153,14 @@ class SqfliteDatabaseService implements DatabaseService {
       'track_id': trackId,
       'position': position,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
-    await updatePlaylist(playlistId, '', DateTime.now().millisecondsSinceEpoch);
+    // Solo se toca la fecha: updatePlaylist también reescribe el nombre y
+    // dejaba la lista sin título al añadirle una canción.
+    await _database.update(
+      'playlists',
+      {'updated_at': DateTime.now().millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [playlistId],
+    );
   }
 
   @override
