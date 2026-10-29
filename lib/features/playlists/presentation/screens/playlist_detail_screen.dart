@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pulso/app/theme/app_colors.dart';
-import 'package:pulso/app/theme/app_typography.dart';
-import 'package:pulso/entities/playlist/playlist.dart';
-import 'package:pulso/entities/track/track.dart';
-import 'package:pulso/features/library/presentation/providers/library_notifier.dart';
-import 'package:pulso/features/playback/presentation/providers/playback_notifier.dart';
-import 'package:pulso/widgets/ui/pulso_waveform.dart';
-import 'package:pulso/widgets/ui/track_artwork.dart';
+import 'package:pulso/shared/ui_kit/theme/app_colors.dart';
+import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
+import 'package:pulso/shared/base_domain/models/playlist.dart';
+import 'package:pulso/shared/base_domain/models/track.dart';
+import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
+import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
+import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
+import 'package:pulso/shared/ui_kit/widgets/track_artwork.dart';
 
-import '../providers/playlists_notifier.dart';
+import '../controllers/playlists_notifier.dart';
 
 /// Pantalla de detalle de una lista de reproducción con ordenación y reproducción completa.
 class PlaylistDetailScreen extends ConsumerStatefulWidget {

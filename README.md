@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Diseñada con <em>Feature-Sliced Design</em> (FSD), <em>Clean Architecture</em>, paleta monocromática estricta (<code>#000000</code> / <code>#FFFFFF</code>) y rendimiento optimizado para dispositivos móviles.
+  Diseñada con <em>Feature-First Clean Architecture</em> (FFCA), paleta monocromática estricta (<code>#000000</code> / <code>#FFFFFF</code>) y rendimiento optimizado para dispositivos móviles.
 </p>
 
 ---
@@ -35,39 +35,45 @@ Pulso se aleja intencionadamente de la apariencia estándar de las plantillas m�
 
 ## 2. Arquitectura de Software
 
-La aplicación implementa una combinación de **Feature-Sliced Design (FSD)** adaptado a Flutter y **Clean Architecture** con **Inversión de Dependencias (SOLID)**:
+La aplicación implementa **Feature-First Clean Architecture (FFCA)**: cada feature contiene sus propias capas de Clean Architecture (`domain`, `data`, `presentation`), con una capa base `shared/` y una capa `app/` que compone las features:
 
 ```text
 lib/
-├── app/                  # Nivel de configuración global
-│   ├── app.dart          # Widget raíz de la aplicación con tema oscuro
-│   └── theme/            # Tokens de color, tipografía y tema Material 3
-├── core/                 # Infraestructura transversal y contratos
-│   ├── audio/            # Contrato AudioPlayerService e integración con JustAudio
-│   ├── database/         # Contrato DatabaseService e implementaciones (Sqflite y Memory)
-│   ├── error/            # Fallos tipados de la aplicación (Failure)
-│   ├── permissions/      # Servicio de permisos adaptativo (PermissionService)
-│   ├── result/           # Tipo funcional Result<T> (Success / Err)
-│   └── utils/            # Formateadores de metadatos de audio
-├── entities/             # Modelos de dominio puros e inmutables
-│   ├── album/            # Entidad Album
-│   ├── artist/           # Entidad Artist
-│   ├── playlist/         # Entidad Playlist y TrackPlaylistEntry
-│   └── track/            # Entidad Track (título, artista, álbum, duración, URI)
-├── features/             # Módulos funcionales desacoplados
-│   ├── favorites/        # Marcado, consulta y persistencia de favoritos
-│   ├── library/          # Exploración de biblioteca (canciones, álbumes, artistas)
-│   ├── playback/         # Control del reproductor, estado reactivo y pantalla completa
-│   ├── playlists/        # Creación, nombrado y gestión de canciones en listas
-│   ├── queue/            # Visualización y reordenación de la cola de reproducción
-│   ├── scan_library/     # Escaneo de MediaStore y extracción de archivos
-│   ├── search/           # Búsqueda local con filtros por categoría
-│   └── settings/         # Preferencias de usuario persistentes
-└── widgets/              # Componentes de interfaz reutilizables
-    ├── mini_player/      # Mini reproductor persistente inferior
-    ├── player_controls/  # Controles de audio y barra de progreso interactiva
-    └── ui/               # Carátula con fallback, onda de pulso y diálogo técnico
+├── app/                        # Composición de la app (Feature-First Clean Architecture)
+│   ├── app.dart                # Widget raíz y MaterialApp
+│   └── presentation/
+│       └── screens/            # Páginas que componen varias features (HomeScreen)
+├── shared/                     # Capa base compartida por todas las features
+│   ├── base_domain/
+│   │   ├── models/             # Track, Album, Artist, Playlist
+│   │   ├── error/              # Fallos tipados (Failure)
+│   │   └── result/             # Tipo funcional Result<T>
+│   ├── base_data/
+│   │   ├── audio/              # AudioPlayerService e implementación JustAudio
+│   │   ├── database/           # DatabaseService (Sqflite y Memory)
+│   │   └── permissions/        # PermissionService
+│   ├── utils/                  # Utilidades Dart puras (formateadores)
+│   └── ui_kit/                 # Design system
+│       ├── theme/              # Colores, tipografía y tema Material 3
+│       └── widgets/            # Carátula, onda de pulso, diálogo técnico
+└── features/
+    └── <feature>/              # favorites, library, playback, playlists,
+        │                       # queue, search, settings
+        ├── domain/
+        │   ├── models/         # Modelos propios de la feature
+        │   ├── services/       # Contratos (interfaces de repositorio)
+        │   └── use_cases/      # Lógica de negocio
+        ├── data/
+        │   ├── data_sources/
+        │   │   └── local/      # MediaStore, SQLite
+        │   └── services/       # Implementaciones de los contratos
+        └── presentation/
+            ├── controllers/    # Notifiers y estados de Riverpod
+            ├── screens/
+            └── widgets/
 ```
+
+**Regla de dependencias:** `data → domain` y `presentation → domain` dentro de cada feature; las features dependen de `shared/` y, cuando hace falta, de otras features; `app/` compone las features.
 
 ### Justificación de Dependencias
 
@@ -209,29 +215,29 @@ Si el usuario rechaza los permisos, la aplicación muestra una pantalla informat
 El proyecto cuenta con una cobertura integral de pruebas que validan cada capa de la arquitectura:
 
 * **Pruebas Unitarias de Dominio:**
-  * `test/unit/track_test.dart`: Inmutabilidad, validación de formatos admitidos y cálculo de duraciones.
-  * `test/unit/sort_tracks_test.dart`: Ordenación ascendente y descendente por título, artista, álbum y duración.
-  * `test/unit/theme_test.dart`: Conformidad con la paleta monocromática y configuración Material 3.
-  * `test/unit/metadata_formatter_test.dart`: Formateo de duraciones (`mm:ss`, `h:mm:ss`), tamaños (`KB`, `MB`) y pistas.
-  * `test/unit/search_library_test.dart`: Búsqueda insensible a mayúsculas, minúsculas y coincidencia en múltiples entidades.
+  * `test/shared/base_domain/models/track_test.dart`: Inmutabilidad, validación de formatos admitidos y cálculo de duraciones.
+  * `test/features/library/domain/use_cases/sort_tracks_test.dart`: Ordenación ascendente y descendente por título, artista, álbum y duración.
+  * `test/shared/ui_kit/theme/theme_test.dart`: Conformidad con la paleta monocromática y configuración Material 3.
+  * `test/shared/utils/metadata_formatter_test.dart`: Formateo de duraciones (`mm:ss`, `h:mm:ss`), tamaños (`KB`, `MB`) y pistas.
+  * `test/features/search/domain/use_cases/search_library_test.dart`: Búsqueda insensible a mayúsculas, minúsculas y coincidencia en múltiples entidades.
 * **Pruebas de Repositorios y Servicios:**
-  * `test/repositories/audio_library_repository_test.dart`: Caché en memoria y filtrado de canciones por álbum.
-  * `test/unit/favorites_repository_test.dart`: Persistencia de favoritos en base de datos.
-  * `test/unit/playlists_repository_test.dart`: CRUD de listas de reproducción y ordenación de pistas.
-  * `test/unit/settings_repository_test.dart`: Persistencia y recuperación de preferencias locales.
-  * `test/unit/playback_notifier_test.dart`: Sincronización de estados, control de cola, aleatorio y modos de bucle.
-  * `test/unit/library_notifier_test.dart`: Carga de pistas, manejo de errores y actualización de ordenación.
+  * `test/features/library/data/services/audio_library_repository_test.dart`: Caché en memoria y filtrado de canciones por álbum.
+  * `test/features/favorites/data/services/favorites_repository_test.dart`: Persistencia de favoritos en base de datos.
+  * `test/features/playlists/data/services/playlists_repository_test.dart`: CRUD de listas de reproducción y ordenación de pistas.
+  * `test/features/settings/data/services/settings_repository_test.dart`: Persistencia y recuperación de preferencias locales.
+  * `test/features/playback/presentation/controllers/playback_notifier_test.dart`: Sincronización de estados, control de cola, aleatorio y modos de bucle.
+  * `test/features/library/presentation/controllers/library_notifier_test.dart`: Carga de pistas, manejo de errores y actualización de ordenación.
 * **Pruebas de Widgets y UI:**
-  * `test/widget_test.dart`: Inicialización de la aplicación y renderizado del título.
-  * `test/widgets/player_controls_test.dart`: Renderizado de controles, progreso interactivo e iconos dinámicos.
-  * `test/widgets/mini_player_test.dart`: Visibilidad condicional y respuesta al toque.
-  * `test/widgets/queue_screen_test.dart`: Lista interactiva de cola y estados vacíos.
-  * `test/widgets/search_screen_test.dart`: Filtrado en tiempo real y chips de categoría.
-  * `test/widgets/favorites_screen_test.dart`: Renderizado de lista de favoritos y estados vacíos.
-  * `test/widgets/playlists_screen_test.dart`: Creación de listas, diálogo modal y contador de canciones.
-  * `test/widgets/settings_screen_test.dart`: Renderizado de switches y opciones de configuración.
-  * `test/widgets/home_screen_test.dart`: Cabecera de Pulso, pestañas principales, barra de resumen y acoplamiento de mini reproductor.
-  * `test/widgets/detail_screens_test.dart`: Vistas en detalle de álbum y artista, botones de reproducción y diálogo de información técnica.
+  * `test/app/app_test.dart`: Inicialización de la aplicación y renderizado del título.
+  * `test/features/playback/presentation/widgets/player_controls_test.dart`: Renderizado de controles, progreso interactivo e iconos dinámicos.
+  * `test/features/playback/presentation/widgets/mini_player_test.dart`: Visibilidad condicional y respuesta al toque.
+  * `test/features/queue/presentation/screens/queue_screen_test.dart`: Lista interactiva de cola y estados vacíos.
+  * `test/features/search/presentation/screens/search_screen_test.dart`: Filtrado en tiempo real y chips de categoría.
+  * `test/features/favorites/presentation/screens/favorites_screen_test.dart`: Renderizado de lista de favoritos y estados vacíos.
+  * `test/features/playlists/presentation/screens/playlists_screen_test.dart`: Creación de listas, diálogo modal y contador de canciones.
+  * `test/features/settings/presentation/screens/settings_screen_test.dart`: Renderizado de switches y opciones de configuración.
+  * `test/app/presentation/screens/home_screen_test.dart`: Cabecera de Pulso, pestañas principales, barra de resumen y acoplamiento de mini reproductor.
+  * `test/features/library/presentation/screens/detail_screens_test.dart`: Vistas en detalle de álbum y artista, botones de reproducción y diálogo de información técnica.
 
 **Resultado de la suite de pruebas:**
 ```text

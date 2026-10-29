@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../features/library/presentation/screens/home_screen.dart';
-import 'theme/app_theme.dart';
+import 'presentation/screens/home_screen.dart';
+import '../shared/ui_kit/theme/app_theme.dart';
 
 class PulsoApp extends StatelessWidget {
   const PulsoApp({super.key});

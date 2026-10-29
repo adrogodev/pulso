@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pulso/app/theme/app_colors.dart';
-import 'package:pulso/app/theme/app_typography.dart';
-import 'package:pulso/entities/track/track.dart';
+import 'package:pulso/shared/ui_kit/theme/app_colors.dart';
+import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
+import 'package:pulso/shared/base_domain/models/track.dart';
 
-import '../providers/playlists_notifier.dart';
+import '../controllers/playlists_notifier.dart';
 
 /// Diálogo para añadir una pista de audio a una lista de reproducción existente o nueva.
 class AddToPlaylistDialog extends ConsumerWidget {

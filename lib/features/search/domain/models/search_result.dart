@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:pulso/entities/album/album.dart';
-import 'package:pulso/entities/artist/artist.dart';
-import 'package:pulso/entities/track/track.dart';
+import 'package:pulso/shared/base_domain/models/album.dart';
+import 'package:pulso/shared/base_domain/models/artist.dart';
+import 'package:pulso/shared/base_domain/models/track.dart';
 
 @immutable
 class SearchResult {

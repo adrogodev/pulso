@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_typography.dart';
-import '../../../../widgets/player_controls/player_controls.dart';
-import '../../../../widgets/player_controls/progress_bar.dart';
-import '../../../../widgets/ui/track_artwork.dart';
-import '../providers/playback_notifier.dart';
+import '../../../../shared/ui_kit/theme/app_colors.dart';
+import '../../../../shared/ui_kit/theme/app_typography.dart';
+import '../widgets/player_controls.dart';
+import '../widgets/progress_bar.dart';
+import '../../../../shared/ui_kit/widgets/track_artwork.dart';
+import '../controllers/playback_notifier.dart';
 
 /// Pantalla completa del reproductor centrada en la canción en reproducción.
 class ExpandedPlayerScreen extends ConsumerWidget {

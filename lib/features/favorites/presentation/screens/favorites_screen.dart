@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pulso/app/theme/app_colors.dart';
-import 'package:pulso/app/theme/app_typography.dart';
-import 'package:pulso/features/favorites/presentation/providers/favorites_notifier.dart';
-import 'package:pulso/features/library/presentation/providers/library_notifier.dart';
-import 'package:pulso/features/playback/presentation/providers/playback_notifier.dart';
-import 'package:pulso/widgets/ui/pulso_waveform.dart';
-import 'package:pulso/widgets/ui/track_artwork.dart';
+import 'package:pulso/shared/ui_kit/theme/app_colors.dart';
+import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
+import 'package:pulso/features/favorites/presentation/controllers/favorites_notifier.dart';
+import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
+import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
+import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
+import 'package:pulso/shared/ui_kit/widgets/track_artwork.dart';
 
 /// Pantalla dedicada a las canciones marcadas como favoritas por el usuario.
 class FavoritesScreen extends ConsumerWidget {

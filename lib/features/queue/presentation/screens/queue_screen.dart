@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_typography.dart';
-import '../../../../widgets/ui/pulso_waveform.dart';
-import '../../../../widgets/ui/track_artwork.dart';
-import '../../../playback/presentation/providers/playback_notifier.dart';
+import '../../../../shared/ui_kit/theme/app_colors.dart';
+import '../../../../shared/ui_kit/theme/app_typography.dart';
+import '../../../../shared/ui_kit/widgets/pulso_waveform.dart';
+import '../../../../shared/ui_kit/widgets/track_artwork.dart';
+import '../../../playback/presentation/controllers/playback_notifier.dart';
 
 /// Pantalla interactiva para visualizar, reordenar y gestionar la cola de reproducción.
 class QueueScreen extends ConsumerWidget {

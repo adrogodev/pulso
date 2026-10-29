@@ -3,47 +3,53 @@
 ## 1. Visión general
 **Pulso** es un reproductor de audio local nativo para Android diseñado bajo una estética monocromática minimalista (`#000000` / `#FFFFFF` / escala de grises), sin dependencias en la nube ni servicios de streaming. Funciona 100% offline y garantiza una experiencia fluida, robusta y con alta fidelidad arquitectónica.
 
-## 2. Paradigma Arquitectónico: FSD + Clean Architecture
+## 2. Paradigma Arquitectónico: Feature-First Clean Architecture
 
-La arquitectura combina los principios de **Feature-Sliced Design (FSD)** adaptados a Flutter con **Clean Architecture** e Inversión de Dependencias (SOLID):
+La arquitectura sigue **Feature-First Clean Architecture (FFCA)**: cada feature tiene su propia carpeta con las capas de Clean Architecture (`domain`, `data`, `presentation`), sobre una capa base `shared/` y una capa `app/` que compone las features. Al ser una sola app, el árbol de monorepo propuesto (`apps/`, `shared/`, `features/`) se adapta dentro de `lib/`:
 
 ```text
 lib/
-├── app/                  # Nivel superior de la aplicación
-│   ├── app.dart          # Configuración del widget raíz y MaterialApp
-│   ├── router/           # Enrutamiento declarativo (GoRouter)
-│   └── theme/            # Tema monocromático y tokens de diseño
-├── core/                 # Utilidades compartidas y abstracciones transversales
-│   ├── audio/            # Interfaces de bajo nivel del motor de audio
-│   ├── constants/        # Constantes de diseño y configuración
-│   ├── error/            # Fallos y excepciones tipadas
-│   ├── permissions/      # Servicios de permisos de almacenamiento/audio
-│   └── result/           # Patrón Result para retorno funcional de operaciones
-├── entities/             # Modelos de dominio puros y reglas de negocio
-│   ├── album/            # Entidad Album y valor de objeto
-│   ├── artist/           # Entidad Artist
-│   ├── playlist/         # Entidad Playlist y entradas de lista
-│   └── track/            # Entidad Track (identificador único, metadatos, uri)
-├── features/             # Slices funcionales desacoplados
-│   ├── library/          # Exploración general, canciones, artistas y álbumes
-│   ├── scan_library/     # Escaneo de MediaStore y detección de archivos
-│   ├── playback/         # Control del reproductor, sincronización de estado
-│   ├── queue/            # Gestión de cola, repetición y modo aleatorio
-│   ├── search/           # Búsqueda local sin distinción de mayúsculas/minúsculas
-│   ├── favorites/        # Marcado y persistencia de canciones favoritas
-│   ├── playlists/        # CRUD de listas, reordenación y asociación de pistas
-│   └── settings/         # Preferencias locales y metadatos del sistema
-└── widgets/              # Componentes de UI transversales y reutilizables
-    ├── mini_player/      # Mini reproductor persistente
-    ├── player_controls/  # Botones y barras de progreso del reproductor
-    └── ui/               # Botones, diálogos y contenedores monocromáticos
+├── app/                        # Composición de la app (Feature-First Clean Architecture)
+│   ├── app.dart                # Widget raíz y MaterialApp
+│   └── presentation/
+│       └── screens/            # Páginas que componen varias features (HomeScreen)
+├── shared/                     # Capa base compartida por todas las features
+│   ├── base_domain/
+│   │   ├── models/             # Track, Album, Artist, Playlist
+│   │   ├── error/              # Fallos tipados (Failure)
+│   │   └── result/             # Tipo funcional Result<T>
+│   ├── base_data/
+│   │   ├── audio/              # AudioPlayerService e implementación JustAudio
+│   │   ├── database/           # DatabaseService (Sqflite y Memory)
+│   │   └── permissions/        # PermissionService
+│   ├── utils/                  # Utilidades Dart puras (formateadores)
+│   └── ui_kit/                 # Design system
+│       ├── theme/              # Colores, tipografía y tema Material 3
+│       └── widgets/            # Carátula, onda de pulso, diálogo técnico
+└── features/
+    └── <feature>/              # favorites, library, playback, playlists,
+        │                       # queue, search, settings
+        ├── domain/
+        │   ├── models/         # Modelos propios de la feature
+        │   ├── services/       # Contratos (interfaces de repositorio)
+        │   └── use_cases/      # Lógica de negocio
+        ├── data/
+        │   ├── data_sources/
+        │   │   └── local/      # MediaStore, SQLite
+        │   └── services/       # Implementaciones de los contratos
+        └── presentation/
+            ├── controllers/    # Notifiers y estados de Riverpod
+            ├── screens/
+            └── widgets/
 ```
 
+**Regla de dependencias:** `data → domain` y `presentation → domain` dentro de cada feature; las features dependen de `shared/` y, cuando hace falta, de otras features; `app/` compone las features.
+
 ### 2.1. Reglas de Dependencias
-- **Domain (`entities` / contratos de casos de uso)**: No depende de Flutter UI ni de paquetes de infraestructura o plugins.
+- **Domain (`shared/base_domain` y `features/*/domain`)**: Modelos, contratos (`services`) y casos de uso. No depende de Flutter UI ni de paquetes de infraestructura o plugins.
 - **Data (en cada slice o core)**: Implementa los contratos de repositorio y abstrae SQLite, MediaStore y JustAudio.
 - **Presentation**: Se suscribe a Riverpod providers, nunca ejecuta operaciones de I/O directamente ni accede a plugins.
-- **FSD isolation**: Las features no deben acoplarse directamente entre sí; interactúan a través de entidades del dominio y providers compartidos.
+- **Entre features**: Una feature puede depender de `shared/` y de la capa de presentación o dominio de otra feature (por ejemplo, `search` consume el estado de `library`). Las páginas que componen varias features viven en `app/presentation/`.
 
 ## 3. Motor de Audio y Segundo Plano
 - **Motor principal**: `just_audio` proporcionando control de audio de baja latencia, buffer, eventos de stream y manejo de errores.

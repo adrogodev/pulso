@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pulso/app/theme/app_colors.dart';
-import 'package:pulso/app/theme/app_typography.dart';
-import 'package:pulso/features/library/presentation/providers/library_notifier.dart';
-import 'package:pulso/widgets/ui/pulso_waveform.dart';
+import 'package:pulso/shared/ui_kit/theme/app_colors.dart';
+import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
+import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
+import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
 
-import '../providers/settings_notifier.dart';
+import '../controllers/settings_notifier.dart';
 
 /// Pantalla de configuración, estado de permisos y preferencias locales de Pulso.
 class SettingsScreen extends ConsumerWidget {
