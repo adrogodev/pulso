@@ -35,16 +35,40 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    // Al pasar a segundo plano el sistema puede cerrar la app sin aviso.
+    _lifecycle = AppLifecycleListener(
+      onHide: () => ref.read(playbackNotifierProvider.notifier).saveSession(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(libraryNotifierProvider.notifier).checkPermissionsAndLoad();
     });
   }
 
   @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // La sesión se restaura con la primera biblioteca cargada, que es la cola
+    // que el usuario ve en pantalla.
+    ref.listen(libraryNotifierProvider.select((s) => s.tracks.isNotEmpty), (
+      hadTracks,
+      hasTracks,
+    ) {
+      if (hasTracks && hadTracks != true) {
+        ref
+            .read(playbackNotifierProvider.notifier)
+            .restoreSession(ref.read(libraryNotifierProvider).sortedTracks);
+      }
+    });
     final libraryState = ref.watch(libraryNotifierProvider);
     final libraryNotifier = ref.read(libraryNotifierProvider.notifier);
     // Solo lo que la lista necesita: escuchar el estado completo redibujaba

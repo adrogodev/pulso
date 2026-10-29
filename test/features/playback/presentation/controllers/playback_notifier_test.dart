@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pulso/shared/base_data/audio/audio_player_service.dart';
 import 'package:pulso/shared/base_domain/models/track.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
+import 'package:pulso/features/settings/domain/services/settings_repository.dart';
+import 'package:pulso/features/settings/presentation/controllers/settings_notifier.dart';
 
 class MockAudioPlayerService implements AudioPlayerService {
   final _statusController = StreamController<AppPlayerStatus>.broadcast();
@@ -236,6 +238,95 @@ void main() {
       final state = container.read(playbackNotifierProvider);
       expect(state.queue, isEmpty);
       expect(state.currentTrack, isNull);
+    });
+
+    group('última sesión', () {
+      SettingsRepository settingsRepo() =>
+          container.read(settingsRepositoryProvider);
+
+      test('guarda la pista actual y su posición', () async {
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(trackB, inQueue: [trackA, trackB]);
+        await notifier.seek(const Duration(seconds: 42));
+        await Future<void>.delayed(Duration.zero);
+
+        await notifier.saveSession();
+
+        final saved = (await settingsRepo().getLastSession()).dataOrNull;
+        expect(saved, {'trackId': '2', 'positionMs': 42000});
+      });
+
+      test(
+        'no guarda las pistas en línea, que no se pueden restaurar',
+        () async {
+          const online = Track(
+            id: 'audius:abc',
+            title: 'Remota',
+            artist: 'A',
+            album: 'Audius',
+            durationMs: 1000,
+            uri: 'https://api.audius.co/v1/tracks/abc/stream?app_name=pulso',
+          );
+          final notifier = container.read(playbackNotifierProvider.notifier);
+          await notifier.playTrack(online);
+
+          await notifier.saveSession();
+
+          expect((await settingsRepo().getLastSession()).dataOrNull, isNull);
+        },
+      );
+
+      test(
+        'restaura la pista pausada en su posición con la biblioteca como cola',
+        () async {
+          await settingsRepo().saveLastSession('2', 42000);
+          final notifier = container.read(playbackNotifierProvider.notifier);
+
+          await notifier.restoreSession([trackA, trackB]);
+
+          final state = container.read(playbackNotifierProvider);
+          expect(state.currentTrack, trackB);
+          expect(state.queue, [trackA, trackB]);
+          expect(state.currentIndex, 1);
+          expect(state.position, const Duration(seconds: 42));
+          expect(mockAudioService.queue, [trackA, trackB]);
+          expect(mockAudioService.currentIndex, 1);
+          expect(mockAudioService.isPlaying, isFalse);
+        },
+      );
+
+      test('no restaura cuando la preferencia está desactivada', () async {
+        await settingsRepo().saveLastSession('2', 42000);
+        await settingsRepo().setPreference('restore_last_session', 'false');
+        final notifier = container.read(playbackNotifierProvider.notifier);
+
+        await notifier.restoreSession([trackA, trackB]);
+
+        expect(container.read(playbackNotifierProvider).currentTrack, isNull);
+        expect(mockAudioService.queue, isEmpty);
+      });
+
+      test(
+        'ignora una sesión cuya pista ya no está en la biblioteca',
+        () async {
+          await settingsRepo().saveLastSession('borrada', 1000);
+          final notifier = container.read(playbackNotifierProvider.notifier);
+
+          await notifier.restoreSession([trackA, trackB]);
+
+          expect(container.read(playbackNotifierProvider).currentTrack, isNull);
+        },
+      );
+
+      test('no pisa una reproducción que ya empezó', () async {
+        await settingsRepo().saveLastSession('2', 42000);
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(trackA, inQueue: [trackA]);
+
+        await notifier.restoreSession([trackA, trackB]);
+
+        expect(container.read(playbackNotifierProvider).currentTrack, trackA);
+      });
     });
   });
 }

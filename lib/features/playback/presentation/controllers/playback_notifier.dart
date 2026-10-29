@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/base_data/audio/audio_player_service.dart';
 import '../../../../shared/base_data/audio/just_audio_player_service.dart';
 import '../../../../shared/base_domain/models/track.dart';
+import '../../../settings/domain/services/settings_repository.dart';
+import '../../../settings/presentation/controllers/settings_notifier.dart';
 import 'playback_state.dart';
 
 final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
@@ -22,6 +24,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   AudioPlayerService get _audioService => ref.read(audioPlayerServiceProvider);
+  SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
 
   @override
   PlaybackState build() {
@@ -45,6 +48,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     _subscriptions.add(
       _audioService.statusStream.listen((status) {
         state = state.copyWith(status: status);
+        if (status == AppPlayerStatus.paused) unawaited(saveSession());
       }),
     );
 
@@ -71,6 +75,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
             currentTrack: current,
             duration: current.duration,
           );
+          unawaited(saveSession());
         }
       }),
     );
@@ -92,6 +97,47 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
         state = state.copyWith(volume: vol);
       }),
     );
+  }
+
+  /// Guarda la pista actual y su posición para restaurarlas al reabrir.
+  ///
+  /// Solo las pistas locales: con el id no alcanza para reconstruir una
+  /// pista en línea, que no existe en la biblioteca.
+  Future<void> saveSession() async {
+    final track = state.currentTrack;
+    if (track == null || track.isRemote) return;
+    await _settingsRepo.saveLastSession(
+      track.id,
+      state.position.inMilliseconds,
+    );
+  }
+
+  /// Carga en pausa la última pista guardada, con la biblioteca como cola.
+  Future<void> restoreSession(List<Track> library) async {
+    if (state.hasTrack || library.isEmpty) return;
+
+    // Se lee del repositorio y no del estado de Ajustes, que se carga de forma
+    // asíncrona y al arrancar todavía puede tener el valor por defecto.
+    final enabled = await _settingsRepo.getPreference('restore_last_session');
+    if (enabled.dataOrNull == 'false') return;
+
+    final session = (await _settingsRepo.getLastSession()).dataOrNull;
+    final index = library.indexWhere((t) => t.id == session?['trackId']);
+    // El usuario pudo empezar a reproducir mientras se leía la sesión.
+    if (index < 0 || state.hasTrack) return;
+
+    final track = library[index];
+    final position = Duration(milliseconds: session!['positionMs'] as int);
+    state = state.copyWith(
+      queue: library,
+      currentIndex: index,
+      currentTrack: track,
+      duration: track.duration,
+      position: position,
+      status: AppPlayerStatus.paused,
+    );
+    await _audioService.setQueue(library, initialIndex: index);
+    await _audioService.seek(position);
   }
 
   Future<void> playTrack(Track track, {List<Track>? inQueue}) async {
