@@ -20,6 +20,7 @@ lib/
 │   │   └── result/             # Tipo funcional Result<T>
 │   ├── base_data/
 │   │   ├── audio/              # AudioPlayerService e implementación JustAudio
+│   │   ├── artwork/            # Caché LRU de carátulas de MediaStore
 │   │   ├── database/           # DatabaseService (Sqflite y Memory)
 │   │   └── permissions/        # PermissionService
 │   ├── utils/                  # Utilidades Dart puras (formateadores)

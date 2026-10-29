@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
+import '../../base_data/artwork/artwork_cache.dart';
 import '../theme/app_colors.dart';
 import 'pulso_waveform.dart';
 
@@ -31,16 +32,39 @@ class TrackArtwork extends StatelessWidget {
       return _buildFallback(radius);
     }
 
+    // QueryArtworkWidget relanza la consulta a MediaStore en cada build;
+    // el caché comparte la misma consulta y los mismos bytes entre rebuilds.
+    final cache = ArtworkCache.instance;
+    final requestSize = ArtworkCache.bucketFor(
+      size,
+      MediaQuery.devicePixelRatioOf(context),
+    );
+    final resolved = cache.peek(id!, type: type, size: requestSize);
+
+    if (resolved != null) {
+      return _buildArtwork(resolved.bytes, radius);
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: cache.load(id!, type: type, size: requestSize),
+      builder: (context, snapshot) => _buildArtwork(snapshot.data, radius),
+    );
+  }
+
+  Widget _buildArtwork(Uint8List? bytes, BorderRadius radius) {
+    if (bytes == null || bytes.isEmpty) {
+      return _buildFallback(radius);
+    }
+
     return ClipRRect(
       borderRadius: radius,
-      child: QueryArtworkWidget(
-        id: id!,
-        type: type,
-        artworkWidth: size,
-        artworkHeight: size,
-        artworkFit: BoxFit.cover,
-        artworkBorder: BorderRadius.zero,
-        nullArtworkWidget: _buildFallback(radius),
+      child: Image.memory(
+        bytes,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
         errorBuilder: (context, error, stackTrace) => _buildFallback(radius),
       ),
     );
