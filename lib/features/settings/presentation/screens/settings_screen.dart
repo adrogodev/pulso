@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulso/shared/ui_kit/theme/app_colors.dart';
 import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
+import 'package:pulso/features/equalizer/presentation/screens/equalizer_screen.dart';
 import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
 import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
 import 'package:pulso/shared/utils/metadata_formatter.dart';
@@ -51,7 +52,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Versión ${settings.appVersion} • Música local offline',
+                  'Versión ${settings.appVersion} • Música local y en línea',
                   style: AppTypography.labelSmall,
                 ),
               ],
@@ -183,6 +184,30 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: const Text(
                     'Oculta audios de menos de un minuto sin artista',
                     style: AppTypography.bodyMedium,
+                  ),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(
+                    Icons.equalizer_rounded,
+                    color: AppColors.iconActive,
+                  ),
+                  title: const Text(
+                    'Ecualizador',
+                    style: AppTypography.bodyLarge,
+                  ),
+                  subtitle: const Text(
+                    'Ajusta graves, medios y agudos',
+                    style: AppTypography.bodyMedium,
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const EqualizerScreen(),
+                    ),
                   ),
                 ),
               ],

@@ -17,6 +17,7 @@ import '../../../features/playback/presentation/controllers/playback_notifier.da
 import '../../../features/playback/presentation/screens/expanded_player_screen.dart';
 import '../../../features/playlists/presentation/screens/playlists_screen.dart';
 import '../../../features/playlists/presentation/widgets/add_to_playlist_dialog.dart';
+import '../../../features/equalizer/presentation/controllers/equalizer_notifier.dart';
 import '../../../features/online_search/presentation/screens/online_search_screen.dart';
 import '../../../features/search/presentation/screens/search_screen.dart';
 import '../../../features/settings/presentation/screens/settings_screen.dart';
@@ -46,6 +47,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(libraryNotifierProvider.notifier).checkPermissionsAndLoad();
+      // Crea el reproductor con el ecualizador en su pipeline y después
+      // aplica las ganancias guardadas.
+      ref.read(audioPlayerServiceProvider);
+      ref.read(equalizerNotifierProvider.notifier).load();
     });
   }
 
