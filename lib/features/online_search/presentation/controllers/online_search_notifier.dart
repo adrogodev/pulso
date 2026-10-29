@@ -17,6 +17,10 @@ final onlineSearchNotifierProvider =
 class OnlineSearchNotifier extends Notifier<OnlineSearchState> {
   OnlineMusicService get _service => ref.read(onlineMusicServiceProvider);
 
+  /// Identifica la búsqueda más reciente; repetir el mismo texto no basta
+  /// para distinguir una respuesta vieja de la actual.
+  int _latestRequest = 0;
+
   @override
   OnlineSearchState build() {
     return const OnlineSearchState();
@@ -28,12 +32,13 @@ class OnlineSearchNotifier extends Notifier<OnlineSearchState> {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
 
+    final request = ++_latestRequest;
     state = state.copyWith(query: trimmed, isLoading: true, clearError: true);
 
     final result = await _service.searchTracks(trimmed);
 
     // Una búsqueda más nueva pudo empezar mientras esta esperaba la red.
-    if (state.query != trimmed) return;
+    if (request != _latestRequest) return;
 
     state = result.when(
       ok: (tracks) =>

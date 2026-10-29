@@ -79,6 +79,38 @@ void main() {
       expect(tracks.map((t) => t.title), ['Libre', 'Sin dato']);
     });
 
+    test('omite los resultados malformados sin perder los válidos', () async {
+      final service = serviceReturning([
+        {'title': 'Sin id'},
+        {'id': 'x', 'title': 'Usuario raro', 'user': 'no-es-un-mapa'},
+        _track(id: 'ok', title: 'Válida'),
+      ]);
+
+      final tracks = (await service.searchTracks('x')).dataOrNull!;
+
+      expect(tracks.map((t) => t.title), ['Usuario raro', 'Válida']);
+      expect(tracks.first.artist, 'Artista desconocido');
+    });
+
+    test('solo acepta carátulas servidas por https', () async {
+      final service = serviceReturning([
+        _track(
+          id: 'a',
+          title: 'Insegura',
+          artwork: {'480x480': 'http://img.audius.co/a.jpg'},
+        ),
+        _track(
+          id: 'b',
+          title: 'Local',
+          artwork: {'480x480': 'file:///sdcard/a.jpg'},
+        ),
+      ]);
+
+      final tracks = (await service.searchTracks('x')).dataOrNull!;
+
+      expect(tracks.map((t) => t.artworkUrl), [null, null]);
+    });
+
     test('codifica la búsqueda e identifica la app en la petición', () async {
       final service = serviceReturning(const []);
 
@@ -120,6 +152,9 @@ void main() {
       final result = await service.searchTracks('lluvia');
 
       expect(result.failureOrNull, isA<NetworkFailure>());
+      // No debe confundirse con un problema de conexión del usuario.
+      expect(result.failureOrNull!.message, contains('respuesta inesperada'));
+      expect(result.failureOrNull!.cause, isA<FormatException>());
     });
   });
 }

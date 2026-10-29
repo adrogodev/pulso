@@ -245,7 +245,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
 
 **Resultado de la suite de pruebas:**
 ```text
-All tests passed! (82 pruebas exitosas, 0 fallos, 0 errores)
+All tests passed! (85 pruebas exitosas, 0 fallos, 0 errores)
 flutter analyze: No issues found!
 ```
 

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../shared/base_domain/error/failures.dart';
 import '../../../../shared/base_domain/models/track.dart';
 import '../../../../shared/base_domain/result/result.dart';
@@ -24,7 +26,18 @@ class AudiusMusicService implements OnlineMusicService {
           .map(_mapper.toTrack)
           .toList(growable: false);
       return Result.ok(tracks);
+    } on FormatException catch (e) {
+      // Un cambio en el formato de la API no es culpa de la conexión del
+      // usuario: se informa distinto y queda registrado para diagnosticarlo.
+      debugPrint('Audius devolvió una respuesta no válida: $e');
+      return Result.err(
+        NetworkFailure(
+          'Audius devolvió una respuesta inesperada. Inténtalo más tarde.',
+          cause: e,
+        ),
+      );
     } catch (e) {
+      debugPrint('Falló la búsqueda en Audius: $e');
       return Result.err(
         NetworkFailure(
           'No se pudo buscar en línea. Revisa tu conexión a internet.',

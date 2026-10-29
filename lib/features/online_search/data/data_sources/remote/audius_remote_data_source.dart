@@ -35,7 +35,8 @@ class AudiusRemoteDataSource {
 
     return (body['data'] as List)
         .whereType<Map<String, dynamic>>()
-        .map(AudiusTrackDto.fromJson)
+        .map(AudiusTrackDto.tryFromJson)
+        .whereType<AudiusTrackDto>()
         .toList();
   }
 

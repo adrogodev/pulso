@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulso/features/online_search/domain/services/online_music_service.dart';
@@ -14,6 +16,20 @@ class _FakeOnlineMusicService implements OnlineMusicService {
   Future<Result<List<Track>>> searchTracks(String query) async {
     queries.add(query);
     return response;
+  }
+}
+
+/// Responde cada búsqueda solo cuando el test completa su [Completer].
+class _ControlledOnlineMusicService implements OnlineMusicService {
+  _ControlledOnlineMusicService(this.pending);
+
+  final List<Completer<Result<List<Track>>>> pending;
+
+  @override
+  Future<Result<List<Track>>> searchTracks(String query) {
+    final completer = Completer<Result<List<Track>>>();
+    pending.add(completer);
+    return completer.future;
   }
 }
 
@@ -66,6 +82,45 @@ void main() {
       expect(state.results, isEmpty);
       expect(state.isLoading, isFalse);
       expect(state.errorMessage, 'Sin conexión');
+    });
+
+    test('descarta una respuesta vieja aunque se repita la consulta', () async {
+      final pending = <Completer<Result<List<Track>>>>[];
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          onlineMusicServiceProvider.overrideWithValue(
+            _ControlledOnlineMusicService(pending),
+          ),
+        ],
+      );
+      final notifier = container.read(onlineSearchNotifierProvider.notifier);
+      const stale = Track(
+        id: 'audius:viejo',
+        title: 'Vieja',
+        artist: 'A',
+        album: 'Audius',
+        durationMs: 1,
+        uri: 'https://api.audius.co/v1/tracks/viejo/stream?app_name=pulso',
+      );
+
+      final first = notifier.search('a');
+      final second = notifier.search('b');
+      final third = notifier.search('a');
+
+      // La primera búsqueda de "a" responde tarde, con la tercera en curso.
+      pending[0].complete(const Result.ok([stale]));
+      await first;
+
+      final state = container.read(onlineSearchNotifierProvider);
+      expect(state.results, isEmpty);
+      expect(state.isLoading, isTrue);
+
+      pending[1].complete(const Result.ok([]));
+      pending[2].complete(const Result.ok([_track]));
+      await Future.wait([second, third]);
+
+      expect(container.read(onlineSearchNotifierProvider).results, [_track]);
     });
 
     test('ignora búsquedas vacías', () async {
