@@ -27,9 +27,16 @@ class LibraryState {
     this.sortOrder = SortOrder.ascending,
   });
 
+  // El estado es inmutable, así que el orden se calcula una sola vez por
+  // instancia en lugar de reordenar toda la biblioteca en cada build.
+  static final Expando<List<Track>> _sortedCache = Expando();
+
   List<Track> get sortedTracks {
-    const sorter = SortTracksUseCase();
-    return sorter(tracks, criteria: sortCriteria, order: sortOrder);
+    return _sortedCache[this] ??= const SortTracksUseCase()(
+      tracks,
+      criteria: sortCriteria,
+      order: sortOrder,
+    );
   }
 
   LibraryState copyWith({

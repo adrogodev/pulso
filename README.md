@@ -50,6 +50,7 @@ lib/
 │   │   └── result/             # Tipo funcional Result<T>
 │   ├── base_data/
 │   │   ├── audio/              # AudioPlayerService e implementación JustAudio
+│   │   ├── artwork/            # Caché LRU de carátulas de MediaStore
 │   │   ├── database/           # DatabaseService (Sqflite y Memory)
 │   │   └── permissions/        # PermissionService
 │   ├── utils/                  # Utilidades Dart puras (formateadores)
@@ -241,7 +242,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
 
 **Resultado de la suite de pruebas:**
 ```text
-All tests passed! (57 pruebas exitosas, 0 fallos, 0 errores)
+All tests passed! (64 pruebas exitosas, 0 fallos, 0 errores)
 flutter analyze: No issues found!
 ```
 
