@@ -44,8 +44,11 @@ class MockAudioPlayerService implements AudioPlayerService {
   @override
   Stream<double> get volumeStream => _volumeController.stream;
 
+  bool failSetQueue = false;
+
   @override
   Future<void> setQueue(List<Track> tracks, {int initialIndex = 0}) async {
+    if (failSetQueue) throw Exception('archivo ilegible');
     queue = List.from(tracks);
     currentIndex = initialIndex;
     _currentIndexController.add(initialIndex);
@@ -310,6 +313,43 @@ void main() {
         'ignora una sesión cuya pista ya no está en la biblioteca',
         () async {
           await settingsRepo().saveLastSession('borrada', 1000);
+          final notifier = container.read(playbackNotifierProvider.notifier);
+
+          await notifier.restoreSession([trackA, trackB]);
+
+          expect(container.read(playbackNotifierProvider).currentTrack, isNull);
+        },
+      );
+
+      test('al cambiar de pista guarda la nueva desde el inicio', () async {
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+        await notifier.seek(const Duration(seconds: 42));
+        await Future<void>.delayed(Duration.zero);
+
+        await notifier.skipToNext();
+        await Future<void>.delayed(Duration.zero);
+
+        final saved = (await settingsRepo().getLastSession()).dataOrNull;
+        expect(saved, {'trackId': '2', 'positionMs': 0});
+      });
+
+      test('restaurar no sobrescribe la posición guardada', () async {
+        await settingsRepo().saveLastSession('2', 42000);
+        final notifier = container.read(playbackNotifierProvider.notifier);
+
+        await notifier.restoreSession([trackA, trackB]);
+        await Future<void>.delayed(Duration.zero);
+
+        final saved = (await settingsRepo().getLastSession()).dataOrNull;
+        expect(saved, {'trackId': '2', 'positionMs': 42000});
+      });
+
+      test(
+        'si el reproductor falla al restaurar, no deja una pista fantasma',
+        () async {
+          await settingsRepo().saveLastSession('2', 42000);
+          mockAudioService.failSetQueue = true;
           final notifier = container.read(playbackNotifierProvider.notifier);
 
           await notifier.restoreSession([trackA, trackB]);

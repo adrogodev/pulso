@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,7 @@ final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
   // El ecualizador tiene que estar en el pipeline desde que se crea el
   // reproductor; AndroidEqualizer solo existe en Android.
   final service = JustAudioPlayerService(
-    equalizer: defaultTargetPlatform == TargetPlatform.android
+    equalizer: !kIsWeb && Platform.isAndroid
         ? ref.watch(androidEqualizerProvider)
         : null,
   );
@@ -78,10 +79,15 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       _audioService.currentIndexStream.listen((index) {
         if (index != null && index >= 0 && index < state.queue.length) {
           final current = state.queue[index];
+          // Una pista nueva arranca de cero; si no, se guardaría con la
+          // posición de la anterior. Un índice repetido (al restaurar) no es
+          // un cambio de pista y conserva la posición.
+          final changed = current.id != state.currentTrack?.id;
           state = state.copyWith(
             currentIndex: index,
             currentTrack: current,
             duration: current.duration,
+            position: changed ? Duration.zero : null,
           );
           unawaited(saveSession());
         }
@@ -135,7 +141,9 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     if (index < 0 || state.hasTrack) return;
 
     final track = library[index];
-    final position = Duration(milliseconds: session!['positionMs'] as int);
+    final positionMs = session?['positionMs'];
+    final position = Duration(milliseconds: positionMs is int ? positionMs : 0);
+    final previous = state;
     state = state.copyWith(
       queue: library,
       currentIndex: index,
@@ -144,8 +152,15 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       position: position,
       status: AppPlayerStatus.paused,
     );
-    await _audioService.setQueue(library, initialIndex: index);
-    await _audioService.seek(position);
+    try {
+      await _audioService.setQueue(library, initialIndex: index);
+      await _audioService.seek(position);
+    } catch (e) {
+      // Si el archivo ya no se puede abrir, no se muestra una pista que el
+      // reproductor nunca cargó.
+      debugPrint('No se pudo restaurar la última sesión: $e');
+      state = previous;
+    }
   }
 
   Future<void> playTrack(Track track, {List<Track>? inQueue}) async {
