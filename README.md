@@ -1,4 +1,4 @@
-# Pulso — Reproductor Musical Local para Android
+# Pulso — Reproductor Musical para Android
 
 <p align="center">
   <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="128" height="128" alt="Pulso Logo" />
@@ -11,6 +11,30 @@
 <p align="center">
   Diseñada con <em>Feature-First Clean Architecture</em> (FFCA), paleta monocromática estricta (<code>#000000</code> / <code>#FFFFFF</code>) y rendimiento optimizado para dispositivos móviles.
 </p>
+
+---
+
+## Descargar
+
+<p align="center">
+  <a href="releases/pulso-v1.0.0-arm64-v8a.apk?raw=true"><strong>⬇️ Descargar Pulso v1.0.0 (APK, 19,1 MB)</strong></a>
+</p>
+
+| Dato | Valor |
+| :--- | :--- |
+| Archivo | [`releases/pulso-v1.0.0-arm64-v8a.apk`](releases/pulso-v1.0.0-arm64-v8a.apk?raw=true) |
+| Versión | 1.0.0 |
+| Arquitectura | `arm64-v8a` (prácticamente todos los teléfonos Android de los últimos años) |
+| Requisito | Android 5.0 o superior |
+| SHA-256 | `52feb91afdf965e401e154ceb94dbd11a68352521086d77c6511f71c28160b91` |
+
+**Instalación:**
+
+1. Descarga el APK en el teléfono.
+2. Ábrelo y, si Android lo pide, permite instalar aplicaciones de orígenes desconocidos para tu navegador o gestor de archivos.
+3. Al abrir Pulso por primera vez, concede el permiso de acceso a la música.
+
+> El APK está firmado con una clave de desarrollo, no se distribuye por Google Play. Para otras arquitecturas (`armeabi-v7a`, `x86_64`), compílalo con `flutter build apk --release --split-per-abi` (sección 5.4).
 
 ---
 
@@ -59,7 +83,8 @@ lib/
 │       └── widgets/            # Carátula, onda de pulso, diálogo técnico
 └── features/
     └── <feature>/              # favorites, library, playback, playlists,
-        │                       # online_search, queue, search, settings
+        │                       # online_search, queue, search, settings,
+        │                       # equalizer
         ├── domain/
         │   ├── models/         # Modelos propios de la feature
         │   ├── services/       # Contratos (interfaces de repositorio)
@@ -101,8 +126,9 @@ lib/
 ### Funcionalidades Implementadas
 
 - [x] **Exploración de Biblioteca:**
-  - Indexación de canciones locales mediante Android `MediaStore`.
+  - Indexación de canciones locales mediante Android `MediaStore`, con solicitud del permiso de audio al primer uso.
   - Detección de títulos, artistas, álbumes, duraciones, tamaños de archivo y años.
+  - Filtro opcional que oculta notas de voz y audios de menos de un minuto sin artista (por ejemplo, los de WhatsApp).
   - Vistas dedicadas para Canciones, Álbumes y Artistas con navegación en detalle.
   - Ordenación de canciones por Título, Artista, Álbum o Duración (Ascendente / Descendente).
 - [x] **Motor de Reproducción:**
@@ -122,6 +148,13 @@ lib/
 - [x] **Búsqueda Integrada:**
   - Búsqueda en tiempo real insensible a mayúsculas, minúsculas y tildes.
   - Filtros por categoría: Todo, Canciones, Álbumes y Artistas.
+- [x] **Música en Línea (Audius):**
+  - Búsqueda de canciones y artistas en la API pública de [Audius](https://audius.co): gratuita, sin cuenta, sin clave y sin anuncios.
+  - Reproducción por streaming con el mismo motor de audio, en segundo plano y con carátula en la notificación.
+  - Al elegir una canción se abre la vista En reproducción; la canción actual queda resaltada en los resultados y el mini reproductor permite volver a ella.
+- [x] **Ecualizador:**
+  - Una barra por cada banda que ofrece el dispositivo (por ejemplo, de 60 Hz a 14 kHz), con activación y restablecimiento a 0 dB.
+  - Se aplica a la música local y en línea, y conserva los valores entre sesiones.
 - [x] **Segundo Plano y Notificaciones:**
   - Integración nativa con `ForegroundService` (`mediaPlayback`).
   - Notificación multimedia en la barra de estado y pantalla de bloqueo de Android con controles de reproducción.
@@ -129,7 +162,8 @@ lib/
 - [x] **Detalles Técnicos:**
   - Diálogo de información técnica por pista (formato, tamaño, duración, URI completa y número de pista).
 - [x] **Configuración y Preferencias:**
-  - Persistencia de preferencias del usuario (recordar última sesión, reescanear al abrir).
+  - Recordar la última sesión: al reabrir, la última canción local aparece en pausa en la misma posición.
+  - Ocultar notas de voz, ecualizador y estado del permiso de audio.
   - Información de versión del motor y del sistema.
 
 ### Limitaciones Técnicas Conocidas
@@ -137,6 +171,8 @@ lib/
 1. **Formatos de Audio:** Los formatos compatibles dependen de los códecs nativos de Android y del motor ExoPlayer subyacente. Formatos estándar como MP3, AAC, M4A, FLAC, OGG y WAV son totalmente compatibles. Formatos poco comunes o archivos corruptos son manejados con errores controlados sin colapsar la interfaz.
 2. **Archivos fuera de MediaStore:** Android restringe el acceso al almacenamiento global mediante *Scoped Storage*. Los archivos colocados en carpetas privadas de otras aplicaciones pueden requerir ser movidos a carpetas estándar (`Music`, `Download`) para ser indexados por MediaStore.
 3. **Carátulas de audio incrustadas:** En archivos de audio que carecen de portada incrustada en las etiquetas ID3, Pulso muestra un fallback minimalista basado en su logotipo y onda geométrica monocromática.
+4. **Última sesión:** solo se restauran canciones locales; una canción en línea no se puede reconstruir solo con su identificador.
+5. **Catálogo en línea:** Audius reúne sobre todo artistas independientes; no incluye el catálogo de los grandes sellos.
 
 ---
 
@@ -189,6 +225,9 @@ flutter build apk --debug
 
 # Compilar APK optimizado para distribución (Release APK)
 flutter build apk --release
+
+# Compilar un APK liviano por arquitectura (el publicado en releases/ es arm64-v8a)
+flutter build apk --release --split-per-abi
 ```
 El archivo generado se ubicará en:
 `build/app/outputs/flutter-apk/app-debug.apk` (o `app-release.apk`).
@@ -209,8 +248,9 @@ Pulso solicita únicamente los permisos indispensables para la lectura de audio 
 | **Android 13+ (API 33+)** | `android.permission.READ_MEDIA_AUDIO` | Acceso granular únicamente a archivos clasificados como audio. No accede a fotos ni videos. |
 | **Android 12 y anteriores** | `android.permission.READ_EXTERNAL_STORAGE` | Acceso de lectura al almacenamiento multimedia externo. |
 | **Todas las versiones** | `android.permission.FOREGROUND_SERVICE`<br>`android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK`<br>`android.permission.WAKE_LOCK` | Permite la reproducción ininterrumpida cuando la aplicación pasa a segundo plano o se apaga la pantalla. |
+| **Todas las versiones** | `android.permission.INTERNET` | Búsqueda y streaming de música en línea desde Audius. |
 
-Si el usuario rechaza los permisos, la aplicación muestra una pantalla informativa con un botón para reintentar la solicitud o abrir la configuración del sistema.
+Pulso pide el permiso de audio al abrirse por primera vez. Si el usuario lo rechaza, puede concederlo después desde Ajustes o al reescanear la biblioteca.
 
 ---
 
@@ -242,10 +282,16 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
   * `test/features/settings/presentation/screens/settings_screen_test.dart`: Renderizado de switches y opciones de configuración.
   * `test/app/presentation/screens/home_screen_test.dart`: Cabecera de Pulso, pestañas principales, barra de resumen y acoplamiento de mini reproductor.
   * `test/features/library/presentation/screens/detail_screens_test.dart`: Vistas en detalle de álbum y artista, botones de reproducción y diálogo de información técnica.
+  * `test/features/playback/presentation/screens/expanded_player_screen_test.dart`: Favorito y acceso a la cola desde el reproductor expandido.
+* **Funcionalidades nuevas:**
+  * `test/features/online_search/**`: Servicio de Audius, controlador con descarte de respuestas viejas y pantalla de búsqueda en línea.
+  * `test/features/equalizer/**`: Persistencia, reaplicación y reversión de cambios del ecualizador, y su pantalla.
+  * `test/features/library/domain/use_cases/filter_music_test.dart`: Filtro de notas de voz y audios cortos sin artista.
+  * `test/shared/base_data/artwork/artwork_cache_test.dart`: Caché LRU de carátulas.
 
 **Resultado de la suite de pruebas:**
 ```text
-All tests passed! (85 pruebas exitosas, 0 fallos, 0 errores)
+All tests passed! (134 pruebas exitosas, 0 fallos, 0 errores)
 flutter analyze: No issues found!
 ```
 
@@ -254,4 +300,4 @@ flutter analyze: No issues found!
 ## 8. Licencia y Créditos
 
 Desarrollado para el proyecto **Pulso** con arquitectura de alto rendimiento para Android.
-Diseño e ingeniería por [adrogo.dev](https://github.com/adrogo).
+Diseño e ingeniería por [adrogodev](https://github.com/adrogodev).
