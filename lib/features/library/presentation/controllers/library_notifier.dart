@@ -63,12 +63,13 @@ class LibraryNotifier extends Notifier<LibraryState> {
       err: (_) => false,
     );
 
-    state = state.copyWith(hasPermission: hasPerm);
-
     if (hasPerm) {
+      state = state.copyWith(hasPermission: true);
       await _loadLibrary();
     } else {
-      state = state.copyWith(isLoading: false);
+      // Sin esto, un usuario nuevo ve la biblioteca vacía sin que nunca se
+      // le muestre el diálogo de permisos del sistema.
+      await requestPermissions();
     }
   }
 
@@ -92,6 +93,11 @@ class LibraryNotifier extends Notifier<LibraryState> {
   }
 
   Future<void> refreshLibrary() async {
+    if (!state.hasPermission) {
+      // Escanear sin permiso devuelve siempre una biblioteca vacía.
+      await requestPermissions();
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     await _loadLibrary(refresh: true);
   }

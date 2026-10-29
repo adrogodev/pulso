@@ -13,13 +13,16 @@ import 'package:pulso/features/library/presentation/controllers/library_notifier
 class MockPermissionService implements PermissionService {
   bool hasPermission = true;
   bool requestGranted = true;
+  int requestCalls = 0;
 
   @override
   Future<Result<bool>> hasAudioPermission() async => Result.ok(hasPermission);
 
   @override
   Future<Result<bool>> requestAudioPermission() async {
+    requestCalls++;
     if (requestGranted) {
+      hasPermission = true;
       return const Result.ok(true);
     }
     return const Result.err(PermissionFailure('Permiso denegado'));
@@ -122,6 +125,65 @@ void main() {
         expect(state.tracks.length, 2);
         expect(state.isLoading, isFalse);
         expect(state.errorMessage, isNull);
+      },
+    );
+
+    test(
+      'checkPermissionsAndLoad no vuelve a pedir un permiso ya concedido',
+      () async {
+        await container
+            .read(libraryNotifierProvider.notifier)
+            .checkPermissionsAndLoad();
+
+        expect(mockPermissionService.requestCalls, 0);
+      },
+    );
+
+    test('checkPermissionsAndLoad pide el permiso cuando falta y carga si se concede', () async {
+      mockPermissionService.hasPermission = false;
+
+      await container
+          .read(libraryNotifierProvider.notifier)
+          .checkPermissionsAndLoad();
+
+      final state = container.read(libraryNotifierProvider);
+      expect(mockPermissionService.requestCalls, 1);
+      expect(state.hasPermission, isTrue);
+      expect(state.tracks.length, 2);
+      expect(state.isLoading, isFalse);
+    });
+
+    test(
+      'checkPermissionsAndLoad informa cuando el usuario deniega el permiso',
+      () async {
+        mockPermissionService
+          ..hasPermission = false
+          ..requestGranted = false;
+
+        await container
+            .read(libraryNotifierProvider.notifier)
+            .checkPermissionsAndLoad();
+
+        final state = container.read(libraryNotifierProvider);
+        expect(state.hasPermission, isFalse);
+        expect(state.tracks, isEmpty);
+        expect(state.isLoading, isFalse);
+        expect(state.errorMessage, 'Permiso denegado');
+      },
+    );
+
+    test(
+      'refreshLibrary pide el permiso en lugar de escanear sin él',
+      () async {
+        mockPermissionService.hasPermission = false;
+        final notifier = container.read(libraryNotifierProvider.notifier);
+
+        await notifier.refreshLibrary();
+
+        final state = container.read(libraryNotifierProvider);
+        expect(mockPermissionService.requestCalls, 1);
+        expect(state.hasPermission, isTrue);
+        expect(state.tracks.length, 2);
       },
     );
 
