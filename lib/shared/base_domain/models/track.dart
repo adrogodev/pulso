@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 /// Entidad pura e inmutable que representa una pista de audio, local o remota.
 @immutable
 class Track {
+  /// Nombre que se asigna cuando MediaStore no informa el artista.
+  static const String unknownArtist = 'Artista desconocido';
+
   final String id;
   final String title;
   final String artist;

@@ -173,16 +173,15 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const Divider(),
                 SwitchListTile(
-                  value: settings.autoRescanOnLaunch,
-                  onChanged: (val) =>
-                      settingsNotifier.setAutoRescanOnLaunch(val),
+                  value: settings.hideShortClips,
+                  onChanged: (val) => settingsNotifier.setHideShortClips(val),
                   activeThumbColor: AppColors.textPrimary,
                   title: const Text(
-                    'Reescanear al abrir',
+                    'Ocultar notas de voz',
                     style: AppTypography.bodyLarge,
                   ),
                   subtitle: const Text(
-                    'Detecta nuevas canciones descargadas automáticamente',
+                    'Oculta audios de menos de un minuto sin artista',
                     style: AppTypography.bodyMedium,
                   ),
                 ),

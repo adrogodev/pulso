@@ -9,6 +9,8 @@ import 'package:pulso/shared/base_domain/models/track.dart';
 import 'package:pulso/features/library/domain/services/audio_library_repository.dart';
 import 'package:pulso/features/library/domain/use_cases/sort_tracks_usecase.dart';
 import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
+import 'package:pulso/features/settings/presentation/controllers/settings_notifier.dart';
+import 'package:pulso/features/settings/presentation/controllers/settings_state.dart';
 
 class MockPermissionService implements PermissionService {
   bool hasPermission = true;
@@ -30,6 +32,17 @@ class MockPermissionService implements PermissionService {
 
   @override
   Future<bool> openSettings() async => true;
+}
+
+/// Preferencias en memoria, sin base de datos.
+class _FakeSettingsNotifier extends SettingsNotifier {
+  @override
+  SettingsState build() => const SettingsState();
+
+  @override
+  Future<void> setHideShortClips(bool value) async {
+    state = state.copyWith(hideShortClips: value);
+  }
 }
 
 class MockAudioLibraryRepository implements AudioLibraryRepository {
@@ -186,6 +199,54 @@ void main() {
         expect(state.tracks.length, 2);
       },
     );
+
+    group('filtro de audios cortos', () {
+      const voiceNote = Track(
+        id: '9',
+        title: 'AUD-20220318-WA0035',
+        artist: Track.unknownArtist,
+        album: 'WhatsApp Audio',
+        durationMs: 3000,
+        uri: 'uri/9',
+      );
+      late _FakeSettingsNotifier settings;
+
+      setUp(() {
+        mockRepository.mockTracks = [sampleTrack1, sampleTrack2, voiceNote];
+        settings = _FakeSettingsNotifier();
+        container.dispose();
+        container = ProviderContainer(
+          overrides: [
+            permissionServiceProvider.overrideWithValue(mockPermissionService),
+            audioLibraryRepositoryProvider.overrideWithValue(mockRepository),
+            settingsNotifierProvider.overrideWith(() => settings),
+          ],
+        );
+      });
+
+      test('oculta las notas de voz al cargar la biblioteca', () async {
+        await container
+            .read(libraryNotifierProvider.notifier)
+            .checkPermissionsAndLoad();
+
+        final tracks = container.read(libraryNotifierProvider).tracks;
+        expect(tracks, [sampleTrack1, sampleTrack2]);
+      });
+
+      test(
+        'las vuelve a mostrar al desactivar el filtro sin reescanear',
+        () async {
+          await container
+              .read(libraryNotifierProvider.notifier)
+              .checkPermissionsAndLoad();
+
+          await settings.setHideShortClips(false);
+
+          final tracks = container.read(libraryNotifierProvider).tracks;
+          expect(tracks, containsAll([sampleTrack1, sampleTrack2, voiceNote]));
+        },
+      );
+    });
 
     test('maneja error cuando la carga de biblioteca falla', () async {
       mockRepository.shouldFail = true;

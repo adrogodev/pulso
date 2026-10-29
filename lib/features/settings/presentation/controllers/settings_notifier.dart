@@ -24,11 +24,11 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
   Future<void> loadSettings() async {
     final restorePref = await _repo.getPreference('restore_last_session');
-    final autoRescanPref = await _repo.getPreference('auto_rescan_on_launch');
+    final hideClipsPref = await _repo.getPreference('hide_short_clips');
 
     state = state.copyWith(
       restoreLastSession: restorePref.dataOrNull != 'false',
-      autoRescanOnLaunch: autoRescanPref.dataOrNull != 'false',
+      hideShortClips: hideClipsPref.dataOrNull != 'false',
     );
   }
 
@@ -37,8 +37,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
     await _repo.setPreference('restore_last_session', value.toString());
   }
 
-  Future<void> setAutoRescanOnLaunch(bool value) async {
-    state = state.copyWith(autoRescanOnLaunch: value);
-    await _repo.setPreference('auto_rescan_on_launch', value.toString());
+  Future<void> setHideShortClips(bool value) async {
+    state = state.copyWith(hideShortClips: value);
+    await _repo.setPreference('hide_short_clips', value.toString());
   }
 }

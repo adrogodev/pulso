@@ -44,7 +44,7 @@ class MediaStoreDataSourceImpl implements MediaStoreDataSource {
 
         final rawArtist = (song.artist ?? '').trim();
         final artist = rawArtist.isEmpty || rawArtist == '<unknown>'
-            ? 'Artista desconocido'
+            ? Track.unknownArtist
             : rawArtist;
 
         final rawAlbum = (song.album ?? '').trim();

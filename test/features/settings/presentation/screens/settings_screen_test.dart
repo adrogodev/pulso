@@ -23,7 +23,7 @@ void main() {
         expect(find.text('Pulso'), findsOneWidget);
         expect(find.text('Actualizar biblioteca'), findsOneWidget);
         expect(find.text('Recordar última sesión'), findsOneWidget);
-        expect(find.text('Reescanear al abrir'), findsOneWidget);
+        expect(find.text('Ocultar notas de voz'), findsOneWidget);
         expect(find.text('Licencias de código abierto'), findsOneWidget);
       },
     );

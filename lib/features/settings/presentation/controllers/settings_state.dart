@@ -3,23 +3,25 @@ import 'package:flutter/foundation.dart';
 @immutable
 class SettingsState {
   final bool restoreLastSession;
-  final bool autoRescanOnLaunch;
+
+  /// Oculta notas de voz y clips cortos sin artista de la biblioteca.
+  final bool hideShortClips;
   final String appVersion;
 
   const SettingsState({
     this.restoreLastSession = true,
-    this.autoRescanOnLaunch = true,
+    this.hideShortClips = true,
     this.appVersion = '1.0.0',
   });
 
   SettingsState copyWith({
     bool? restoreLastSession,
-    bool? autoRescanOnLaunch,
+    bool? hideShortClips,
     String? appVersion,
   }) {
     return SettingsState(
       restoreLastSession: restoreLastSession ?? this.restoreLastSession,
-      autoRescanOnLaunch: autoRescanOnLaunch ?? this.autoRescanOnLaunch,
+      hideShortClips: hideShortClips ?? this.hideShortClips,
       appVersion: appVersion ?? this.appVersion,
     );
   }

@@ -6,6 +6,8 @@ import '../../../../shared/base_domain/models/track.dart';
 import '../../data/data_sources/local/media_store_datasource_provider.dart';
 import '../../data/services/audio_library_repository_impl.dart';
 import '../../domain/services/audio_library_repository.dart';
+import '../../../settings/presentation/controllers/settings_notifier.dart';
+import '../../domain/use_cases/filter_music_usecase.dart';
 import '../../domain/use_cases/get_albums_usecase.dart';
 import '../../domain/use_cases/get_artists_usecase.dart';
 import '../../domain/use_cases/get_tracks_usecase.dart';
@@ -49,8 +51,22 @@ class LibraryNotifier extends Notifier<LibraryState> {
   GetArtistsUseCase get _getArtistsUseCase =>
       ref.read(getArtistsUseCaseProvider);
 
+  static const _filterMusic = FilterMusicUseCase();
+
+  /// Biblioteca completa; `state.tracks` es la vista filtrada.
+  List<Track> _allTracks = const [];
+
+  bool get _hideShortClips => ref.read(settingsNotifierProvider).hideShortClips;
+
   @override
   LibraryState build() {
+    // Cambiar la preferencia refiltra en memoria, sin reescanear MediaStore.
+    ref.listen(
+      settingsNotifierProvider.select((s) => s.hideShortClips),
+      (_, hide) => state = state.copyWith(
+        tracks: _filterMusic(_allTracks, hideShortClips: hide),
+      ),
+    );
     return const LibraryState();
   }
 
@@ -108,8 +124,9 @@ class LibraryNotifier extends Notifier<LibraryState> {
     final artistsRes = await _getArtistsUseCase(refresh: refresh);
 
     if (tracksRes is Success<List<Track>>) {
+      _allTracks = tracksRes.data;
       state = state.copyWith(
-        tracks: tracksRes.data,
+        tracks: _filterMusic(_allTracks, hideShortClips: _hideShortClips),
         albums: albumsRes.dataOrNull ?? state.albums,
         artists: artistsRes.dataOrNull ?? state.artists,
         isLoading: false,
