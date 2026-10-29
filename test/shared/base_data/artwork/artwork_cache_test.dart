@@ -51,6 +51,17 @@ void main() {
       expect(cache.peek(1, type: ArtworkType.AUDIO, size: 128), isNotNull);
     });
 
+    test('peek marca la entrada como usada recientemente', () async {
+      await cache.load(1, type: ArtworkType.AUDIO, size: 128);
+      await cache.load(2, type: ArtworkType.AUDIO, size: 128);
+      // La 1 se está mostrando: no debe desalojarse antes que la 2.
+      cache.peek(1, type: ArtworkType.AUDIO, size: 128);
+      await cache.load(3, type: ArtworkType.AUDIO, size: 128);
+
+      expect(cache.peek(1, type: ArtworkType.AUDIO, size: 128), isNotNull);
+      expect(cache.peek(2, type: ArtworkType.AUDIO, size: 128), isNull);
+    });
+
     test('no guarda errores y permite reintentar', () async {
       var fail = true;
       final flaky = ArtworkCache(

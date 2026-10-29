@@ -49,8 +49,12 @@ class ArtworkCache {
     required ArtworkType type,
     required int size,
   }) {
-    final entry = _entries[_key(id, type, size)];
-    if (entry == null || !entry.isResolved) return null;
+    final key = _key(id, type, size);
+    final entry = _entries.remove(key);
+    if (entry == null) return null;
+    // Una carátula en pantalla cuenta como uso reciente para el LRU.
+    _entries[key] = entry;
+    if (!entry.isResolved) return null;
     return ResolvedArtwork(entry.bytes);
   }
 

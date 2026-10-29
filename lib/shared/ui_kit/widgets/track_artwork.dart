@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -15,12 +13,16 @@ class TrackArtwork extends StatelessWidget {
   final double size;
   final BorderRadius? borderRadius;
 
+  /// Caché de carátulas; por defecto la instancia compartida de la app.
+  final ArtworkCache? cache;
+
   const TrackArtwork({
     super.key,
     required this.id,
     this.type = ArtworkType.AUDIO,
     this.size = 50,
     this.borderRadius,
+    this.cache,
   });
 
   @override
@@ -28,13 +30,15 @@ class TrackArtwork extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(8);
 
     // Fallback si no hay ID o no estamos en Android
-    if (id == null || !Platform.isAndroid || kIsWeb) {
+    if (id == null ||
+        kIsWeb ||
+        defaultTargetPlatform != TargetPlatform.android) {
       return _buildFallback(radius);
     }
 
     // QueryArtworkWidget relanza la consulta a MediaStore en cada build;
     // el caché comparte la misma consulta y los mismos bytes entre rebuilds.
-    final cache = ArtworkCache.instance;
+    final cache = this.cache ?? ArtworkCache.instance;
     final requestSize = ArtworkCache.bucketFor(
       size,
       MediaQuery.devicePixelRatioOf(context),
@@ -45,7 +49,10 @@ class TrackArtwork extends StatelessWidget {
       return _buildArtwork(resolved.bytes, radius);
     }
 
+    // La key reinicia el FutureBuilder al cambiar de carátula; si no,
+    // conserva los bytes anteriores hasta que resuelve la nueva consulta.
     return FutureBuilder<Uint8List?>(
+      key: ValueKey((id, type, requestSize)),
       future: cache.load(id!, type: type, size: requestSize),
       builder: (context, snapshot) => _buildArtwork(snapshot.data, radius),
     );
