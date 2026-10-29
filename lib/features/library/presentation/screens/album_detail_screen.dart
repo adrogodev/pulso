@@ -90,7 +90,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${sortedTracks.length} canciones${year != null && year > 0 ? ' • $year' : ''}',
+                        '${MetadataFormatter.formatSongCount(sortedTracks.length)}${year != null && year > 0 ? ' • $year' : ''}',
                         style: AppTypography.bodyMedium,
                       ),
                       const SizedBox(height: 16),

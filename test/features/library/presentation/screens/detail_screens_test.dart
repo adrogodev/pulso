@@ -105,7 +105,7 @@ void main() {
       );
 
       expect(find.text('Artista Destacado'), findsWidgets);
-      expect(find.text('1 álbum • 1 canciones'), findsOneWidget);
+      expect(find.text('1 álbum • 1 canción'), findsOneWidget);
       expect(find.text('Pista de Prueba'), findsOneWidget);
     });
   });

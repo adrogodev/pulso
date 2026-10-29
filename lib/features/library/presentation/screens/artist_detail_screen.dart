@@ -86,7 +86,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${artist.numOfAlbums} ${artist.numOfAlbums == 1 ? "álbum" : "álbumes"} • ${artist.numOfTracks} canciones',
+                        '${artist.numOfAlbums} ${artist.numOfAlbums == 1 ? "álbum" : "álbumes"} • ${MetadataFormatter.formatSongCount(artist.numOfTracks)}',
                         style: AppTypography.bodyMedium,
                       ),
                       const SizedBox(height: 16),

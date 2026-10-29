@@ -5,6 +5,7 @@ import '../../../../shared/ui_kit/theme/app_colors.dart';
 import '../../../../shared/ui_kit/theme/app_typography.dart';
 import '../../../../shared/ui_kit/widgets/pulso_waveform.dart';
 import '../../../../shared/ui_kit/widgets/track_artwork.dart';
+import '../../../../shared/utils/metadata_formatter.dart';
 import '../../../playback/presentation/controllers/playback_notifier.dart';
 import '../controllers/search_notifier.dart';
 import '../controllers/search_state.dart';
@@ -218,7 +219,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         if (showTracks && result.tracks.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text('CANCIÓNES', style: AppTypography.labelSmall),
+            child: Text('CANCIONES', style: AppTypography.labelSmall),
           ),
           ...result.tracks.map((track) {
             final trackArtworkId = int.tryParse(track.id);
@@ -276,7 +277,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 maxLines: 1,
               ),
               trailing: Text(
-                '${album.numOfSongs} canciones',
+                MetadataFormatter.formatSongCount(album.numOfSongs),
                 style: AppTypography.labelSmall,
               ),
             );

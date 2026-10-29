@@ -156,7 +156,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      '${libraryState.tracks.length} canciones • ${libraryState.albums.length} álbumes',
+                      '${MetadataFormatter.formatSongCount(libraryState.tracks.length)} • ${libraryState.albums.length} ${libraryState.albums.length == 1 ? "álbum" : "álbumes"}',
                       style: AppTypography.bodyMedium,
                     ),
                   ),
@@ -521,7 +521,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                '${album.numOfSongs} canciones',
+                MetadataFormatter.formatSongCount(album.numOfSongs),
                 style: AppTypography.labelSmall,
               ),
             ],
@@ -567,7 +567,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           title: Text(artist.name, style: AppTypography.bodyLarge),
           subtitle: Text(
-            '${artist.numOfAlbums} ${artist.numOfAlbums == 1 ? "álbum" : "álbumes"} • ${artist.numOfTracks} canciones',
+            '${artist.numOfAlbums} ${artist.numOfAlbums == 1 ? "álbum" : "álbumes"} • ${MetadataFormatter.formatSongCount(artist.numOfTracks)}',
             style: AppTypography.bodyMedium,
           ),
           trailing: const Icon(

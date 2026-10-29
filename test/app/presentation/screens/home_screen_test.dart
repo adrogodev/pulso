@@ -144,7 +144,7 @@ void main() {
       );
 
       expect(find.text('Canción Principal'), findsOneWidget);
-      expect(find.text('1 canciones • 1 álbumes'), findsOneWidget);
+      expect(find.text('1 canción • 1 álbum'), findsOneWidget);
     });
 
     testWidgets(

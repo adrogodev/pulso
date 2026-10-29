@@ -20,6 +20,12 @@ void main() {
       expect(MetadataFormatter.formatFileSize(5242880), '5.0 MB');
     });
 
+    test('concuerda el número de canciones en singular y plural', () {
+      expect(MetadataFormatter.formatSongCount(0), '0 canciones');
+      expect(MetadataFormatter.formatSongCount(1), '1 canción');
+      expect(MetadataFormatter.formatSongCount(2), '2 canciones');
+    });
+
     test('formatea números de pista con padding de dos dígitos', () {
       expect(MetadataFormatter.formatTrackNumber(null), '');
       expect(MetadataFormatter.formatTrackNumber(0), '');

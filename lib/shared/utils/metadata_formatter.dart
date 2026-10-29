@@ -31,4 +31,8 @@ abstract final class MetadataFormatter {
     if (track == null || track <= 0) return '';
     return track.toString().padLeft(2, '0');
   }
+
+  /// Cantidad de canciones con el sustantivo en singular o plural.
+  static String formatSongCount(int count) =>
+      count == 1 ? '1 canción' : '$count canciones';
 }
