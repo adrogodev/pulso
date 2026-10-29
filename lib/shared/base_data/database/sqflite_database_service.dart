@@ -16,7 +16,13 @@ class SqfliteDatabaseService implements DatabaseService {
   /// El provider no espera a [initialize], asÃ­ que leer favoritos al arrancar
   /// fallaba con la base aÃºn cerrada: se mostraban vacÃ­os y el siguiente toque
   /// en el corazÃ³n borraba el favorito en lugar de aÃ±adirlo.
-  Future<Database> get _database => _opening ??= _open();
+  Future<Database> get _database =>
+      _opening ??= _open().catchError((Object error) {
+        // Un fallo al abrir (E/S, disco lleno) no debe quedar memoizado: la
+        // siguiente consulta vuelve a intentarlo.
+        _opening = null;
+        return Future<Database>.error(error);
+      });
 
   Future<Database> _open() async {
     final dbPath = await getDatabasesPath();
