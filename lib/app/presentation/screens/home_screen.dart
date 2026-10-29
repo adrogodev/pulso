@@ -14,7 +14,6 @@ import '../../../shared/ui_kit/widgets/track_info_dialog.dart';
 import '../../../features/favorites/presentation/controllers/favorites_notifier.dart';
 import '../../../features/favorites/presentation/screens/favorites_screen.dart';
 import '../../../features/playback/presentation/controllers/playback_notifier.dart';
-import '../../../features/playback/presentation/controllers/playback_state.dart';
 import '../../../features/playback/presentation/screens/expanded_player_screen.dart';
 import '../../../features/playlists/presentation/screens/playlists_screen.dart';
 import '../../../features/playlists/presentation/widgets/add_to_playlist_dialog.dart';
@@ -47,7 +46,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final libraryState = ref.watch(libraryNotifierProvider);
     final libraryNotifier = ref.read(libraryNotifierProvider.notifier);
-    final playbackState = ref.watch(playbackNotifierProvider);
+    // Solo lo que la lista necesita: escuchar el estado completo redibujaba
+    // toda la pantalla en cada tick de posición.
+    final nowPlaying = ref.watch(
+      playbackNotifierProvider.select(
+        (s) => (trackId: s.currentTrack?.id, isPlaying: s.isPlaying),
+      ),
+    );
     final playbackNotifier = ref.read(playbackNotifierProvider.notifier);
     final favorites = ref.watch(favoritesNotifierProvider);
     final favoritesNotifier = ref.read(favoritesNotifierProvider.notifier);
@@ -218,7 +223,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         _buildTracksTab(
                           context,
                           libraryState.sortedTracks,
-                          playbackState,
+                          nowPlaying,
                           playbackNotifier,
                           favorites,
                           favoritesNotifier,
@@ -283,7 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildTracksTab(
     BuildContext context,
     List<Track> tracks,
-    PlaybackState playbackState,
+    ({String? trackId, bool isPlaying}) nowPlaying,
     PlaybackNotifier playbackNotifier,
     Set<String> favorites,
     FavoritesNotifier favoritesNotifier,
@@ -324,7 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       itemCount: tracks.length,
       itemBuilder: (ctx, index) {
         final track = tracks[index];
-        final isCurrent = playbackState.currentTrack?.id == track.id;
+        final isCurrent = nowPlaying.trackId == track.id;
         final isFav = favorites.contains(track.id);
 
         return ListTile(
@@ -353,7 +358,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isCurrent && playbackState.isPlaying)
+              if (isCurrent && nowPlaying.isPlaying)
                 const Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: PulsoWaveform(width: 20, height: 16),

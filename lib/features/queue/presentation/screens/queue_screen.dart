@@ -13,7 +13,16 @@ class QueueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playbackState = ref.watch(playbackNotifierProvider);
+    // Sin `position`: la cola no necesita redibujarse en cada tick.
+    final playbackState = ref.watch(
+      playbackNotifierProvider.select(
+        (s) => (
+          queue: s.queue,
+          currentIndex: s.currentIndex,
+          isPlaying: s.isPlaying,
+        ),
+      ),
+    );
     final notifier = ref.read(playbackNotifierProvider.notifier);
     final queue = playbackState.queue;
 

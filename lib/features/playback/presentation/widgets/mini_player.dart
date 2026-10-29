@@ -14,8 +14,14 @@ class MiniPlayer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playbackState = ref.watch(playbackNotifierProvider);
-    final track = playbackState.currentTrack;
+    // La posición se escucha solo en [_MiniProgressBar] para no redibujar
+    // todo el mini reproductor en cada tick.
+    final track = ref.watch(
+      playbackNotifierProvider.select((s) => s.currentTrack),
+    );
+    final isPlaying = ref.watch(
+      playbackNotifierProvider.select((s) => s.isPlaying),
+    );
 
     // Desaparece limpiamente si no hay pista cargada
     if (track == null) {
@@ -39,14 +45,7 @@ class MiniPlayer extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Barra de progreso delgada superior
-                LinearProgressIndicator(
-                  value: playbackState.progress,
-                  backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.textPrimary,
-                  ),
-                  minHeight: 2,
-                ),
+                const _MiniProgressBar(),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -103,15 +102,13 @@ class MiniPlayer extends ConsumerWidget {
                       // Botón Reproducir / Pausar
                       IconButton(
                         icon: Icon(
-                          playbackState.isPlaying
+                          isPlaying
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
                           color: AppColors.iconActive,
                           size: 30,
                         ),
-                        tooltip: playbackState.isPlaying
-                            ? 'Pausar'
-                            : 'Reproducir',
+                        tooltip: isPlaying ? 'Pausar' : 'Reproducir',
                         onPressed: () => notifier.togglePlayPause(),
                       ),
 
@@ -133,6 +130,24 @@ class MiniPlayer extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MiniProgressBar extends ConsumerWidget {
+  const _MiniProgressBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(
+      playbackNotifierProvider.select((s) => s.progress),
+    );
+
+    return LinearProgressIndicator(
+      value: progress,
+      backgroundColor: Colors.transparent,
+      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+      minHeight: 2,
     );
   }
 }

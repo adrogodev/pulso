@@ -23,9 +23,11 @@ class ExpandedPlayerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playbackState = ref.watch(playbackNotifierProvider);
-    final notifier = ref.read(playbackNotifierProvider.notifier);
-    final track = playbackState.currentTrack;
+    // Cada sección escucha solo lo que pinta: la posición cambia varias veces
+    // por segundo y no debe redibujar la carátula ni los metadatos.
+    final track = ref.watch(
+      playbackNotifierProvider.select((s) => s.currentTrack),
+    );
 
     if (track == null) {
       return Scaffold(
@@ -153,33 +155,70 @@ class ExpandedPlayerScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Barra de progreso interactiva
-              ProgressBar(
-                position: playbackState.position,
-                duration: playbackState.duration,
-                onSeek: (pos) => notifier.seek(pos),
-              ),
+              const _PlayerProgress(),
 
               const SizedBox(height: 16),
 
               // Controles completos del reproductor
-              PlayerControls(
-                isPlaying: playbackState.isPlaying,
-                isBuffering: playbackState.isBuffering,
-                isShuffleEnabled: playbackState.isShuffleEnabled,
-                loopMode: playbackState.loopMode,
-                onPlayPause: () => notifier.togglePlayPause(),
-                onPrevious: () => notifier.skipToPrevious(),
-                onNext: () => notifier.skipToNext(),
-                onToggleShuffle: () => notifier.toggleShuffle(),
-                onCycleLoop: () => notifier.cycleLoopMode(),
-                buttonSize: 32,
-              ),
+              const _PlayerControlsSection(),
 
               const Spacer(flex: 2),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PlayerProgress extends ConsumerWidget {
+  const _PlayerProgress();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(
+      playbackNotifierProvider.select(
+        (s) => (position: s.position, duration: s.duration),
+      ),
+    );
+    final notifier = ref.read(playbackNotifierProvider.notifier);
+
+    return ProgressBar(
+      position: progress.position,
+      duration: progress.duration,
+      onSeek: (pos) => notifier.seek(pos),
+    );
+  }
+}
+
+class _PlayerControlsSection extends ConsumerWidget {
+  const _PlayerControlsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls = ref.watch(
+      playbackNotifierProvider.select(
+        (s) => (
+          isPlaying: s.isPlaying,
+          isBuffering: s.isBuffering,
+          isShuffleEnabled: s.isShuffleEnabled,
+          loopMode: s.loopMode,
+        ),
+      ),
+    );
+    final notifier = ref.read(playbackNotifierProvider.notifier);
+
+    return PlayerControls(
+      isPlaying: controls.isPlaying,
+      isBuffering: controls.isBuffering,
+      isShuffleEnabled: controls.isShuffleEnabled,
+      loopMode: controls.loopMode,
+      onPlayPause: () => notifier.togglePlayPause(),
+      onPrevious: () => notifier.skipToPrevious(),
+      onNext: () => notifier.skipToNext(),
+      onToggleShuffle: () => notifier.toggleShuffle(),
+      onCycleLoop: () => notifier.cycleLoopMode(),
+      buttonSize: 32,
     );
   }
 }

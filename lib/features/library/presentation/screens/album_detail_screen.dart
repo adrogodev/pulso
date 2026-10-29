@@ -26,7 +26,11 @@ class AlbumDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryState = ref.watch(libraryNotifierProvider);
-    final playbackState = ref.watch(playbackNotifierProvider);
+    final nowPlaying = ref.watch(
+      playbackNotifierProvider.select(
+        (s) => (trackId: s.currentTrack?.id, isPlaying: s.isPlaying),
+      ),
+    );
     final playbackNotifier = ref.read(playbackNotifierProvider.notifier);
     final favorites = ref.watch(favoritesNotifierProvider);
     final favoritesNotifier = ref.read(favoritesNotifierProvider.notifier);
@@ -127,7 +131,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                 // Lista de pistas del álbum
                 ...List.generate(sortedTracks.length, (index) {
                   final track = sortedTracks[index];
-                  final isCurrent = playbackState.currentTrack?.id == track.id;
+                  final isCurrent = nowPlaying.trackId == track.id;
                   final isFav = favorites.contains(track.id);
 
                   return ListTile(
@@ -135,7 +139,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                     leading: SizedBox(
                       width: 36,
                       child: Center(
-                        child: isCurrent && playbackState.isPlaying
+                        child: isCurrent && nowPlaying.isPlaying
                             ? const PulsoWaveform(width: 24, height: 18)
                             : Text(
                                 track.trackNumber != null &&
