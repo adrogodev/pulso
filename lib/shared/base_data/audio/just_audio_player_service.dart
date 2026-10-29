@@ -104,6 +104,9 @@ class JustAudioPlayerService implements AudioPlayerService {
           artist: track.artist,
           album: track.album,
           duration: track.duration,
+          artUri: track.artworkUrl != null
+              ? Uri.tryParse(track.artworkUrl!)
+              : null,
         ),
       );
     }).toList();

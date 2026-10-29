@@ -96,6 +96,7 @@ class ExpandedPlayerScreen extends ConsumerWidget {
                     ),
                     child: TrackArtwork(
                       id: trackArtworkId,
+                      url: track.artworkUrl,
                       size: artworkSize,
                       borderRadius: BorderRadius.circular(20),
                     ),

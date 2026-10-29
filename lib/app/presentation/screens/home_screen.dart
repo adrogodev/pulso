@@ -17,6 +17,7 @@ import '../../../features/playback/presentation/controllers/playback_notifier.da
 import '../../../features/playback/presentation/screens/expanded_player_screen.dart';
 import '../../../features/playlists/presentation/screens/playlists_screen.dart';
 import '../../../features/playlists/presentation/widgets/add_to_playlist_dialog.dart';
+import '../../../features/online_search/presentation/screens/online_search_screen.dart';
 import '../../../features/search/presentation/screens/search_screen.dart';
 import '../../../features/settings/presentation/screens/settings_screen.dart';
 import '../../../features/library/domain/use_cases/sort_tracks_usecase.dart';
@@ -77,6 +78,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.public_rounded,
+                color: AppColors.textPrimary,
+              ),
+              tooltip: 'Buscar en línea',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const OnlineSearchScreen(),
+                  ),
                 );
               },
             ),

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Aplicación de reproducción musical nativa, minimalista, moderna y 100% offline para Android.</strong>
+  <strong>Aplicación de reproducción musical nativa, minimalista y moderna para Android: tu biblioteca local offline y música libre en línea vía Audius, gratis y sin anuncios.</strong>
 </p>
 
 <p align="center">
@@ -59,14 +59,17 @@ lib/
 │       └── widgets/            # Carátula, onda de pulso, diálogo técnico
 └── features/
     └── <feature>/              # favorites, library, playback, playlists,
-        │                       # queue, search, settings
+        │                       # online_search, queue, search, settings
         ├── domain/
         │   ├── models/         # Modelos propios de la feature
         │   ├── services/       # Contratos (interfaces de repositorio)
         │   └── use_cases/      # Lógica de negocio
         ├── data/
         │   ├── data_sources/
-        │   │   └── local/      # MediaStore, SQLite
+        │   │   ├── local/      # MediaStore, SQLite
+        │   │   └── remote/     # APIs HTTP (Audius)
+        │   ├── dto/            # Respuestas crudas de APIs remotas
+        │   ├── mappers/        # DTO → modelos de dominio
         │   └── services/       # Implementaciones de los contratos
         └── presentation/
             ├── controllers/    # Notifiers y estados de Riverpod
@@ -242,7 +245,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
 
 **Resultado de la suite de pruebas:**
 ```text
-All tests passed! (68 pruebas exitosas, 0 fallos, 0 errores)
+All tests passed! (82 pruebas exitosas, 0 fallos, 0 errores)
 flutter analyze: No issues found!
 ```
 

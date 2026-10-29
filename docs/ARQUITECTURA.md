@@ -1,7 +1,7 @@
 # Arquitectura de Pulso
 
 ## 1. Visión general
-**Pulso** es un reproductor de audio local nativo para Android diseñado bajo una estética monocromática minimalista (`#000000` / `#FFFFFF` / escala de grises), sin dependencias en la nube ni servicios de streaming. Funciona 100% offline y garantiza una experiencia fluida, robusta y con alta fidelidad arquitectónica.
+**Pulso** es un reproductor de audio local nativo para Android diseñado bajo una estética monocromática minimalista (`#000000` / `#FFFFFF` / escala de grises), sin cuentas ni anuncios. La biblioteca local funciona 100% offline; la feature `online_search` añade búsqueda y streaming de música libre desde la API pública de [Audius](https://audius.co) (gratuita, sin clave), reproducible en segundo plano con el mismo motor de audio.
 
 ## 2. Paradigma Arquitectónico: Feature-First Clean Architecture
 
@@ -29,14 +29,17 @@ lib/
 │       └── widgets/            # Carátula, onda de pulso, diálogo técnico
 └── features/
     └── <feature>/              # favorites, library, playback, playlists,
-        │                       # queue, search, settings
+        │                       # online_search, queue, search, settings
         ├── domain/
         │   ├── models/         # Modelos propios de la feature
         │   ├── services/       # Contratos (interfaces de repositorio)
         │   └── use_cases/      # Lógica de negocio
         ├── data/
         │   ├── data_sources/
-        │   │   └── local/      # MediaStore, SQLite
+        │   │   ├── local/      # MediaStore, SQLite
+        │   │   └── remote/     # APIs HTTP (Audius)
+        │   ├── dto/            # Respuestas crudas de APIs remotas
+        │   ├── mappers/        # DTO → modelos de dominio
         │   └── services/       # Implementaciones de los contratos
         └── presentation/
             ├── controllers/    # Notifiers y estados de Riverpod

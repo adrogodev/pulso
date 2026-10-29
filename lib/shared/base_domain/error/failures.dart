@@ -49,6 +49,11 @@ class StorageFailure extends Failure {
   const StorageFailure(super.message, {super.cause});
 }
 
+/// Fallo al consultar un servicio remoto (sin conexión, timeout o respuesta inválida).
+class NetworkFailure extends Failure {
+  const NetworkFailure(super.message, {super.cause});
+}
+
 /// Fallo cuando un elemento no es encontrado.
 class NotFoundFailure extends Failure {
   const NotFoundFailure(super.message, {super.cause});

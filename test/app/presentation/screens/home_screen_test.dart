@@ -89,6 +89,7 @@ void main() {
       expect(find.text('Álbumes'), findsOneWidget);
       expect(find.text('Artistas'), findsOneWidget);
       expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byTooltip('Buscar en línea'), findsOneWidget);
       expect(find.byIcon(Icons.favorite_border), findsOneWidget);
       expect(find.byIcon(Icons.playlist_play), findsOneWidget);
       expect(find.byIcon(Icons.settings_outlined), findsOneWidget);

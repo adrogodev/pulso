@@ -16,6 +16,9 @@ class TrackArtwork extends StatelessWidget {
   /// Caché de carátulas; por defecto la instancia compartida de la app.
   final ArtworkCache? cache;
 
+  /// Carátula remota; tiene prioridad sobre la de MediaStore.
+  final String? url;
+
   const TrackArtwork({
     super.key,
     required this.id,
@@ -23,11 +26,16 @@ class TrackArtwork extends StatelessWidget {
     this.size = 50,
     this.borderRadius,
     this.cache,
+    this.url,
   });
 
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(8);
+
+    if (url != null) {
+      return _buildNetworkArtwork(context, url!, radius);
+    }
 
     // Fallback si no hay ID o no estamos en Android
     if (id == null ||
@@ -70,6 +78,30 @@ class TrackArtwork extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (context, error, stackTrace) => _buildFallback(radius),
+      ),
+    );
+  }
+
+  Widget _buildNetworkArtwork(
+    BuildContext context,
+    String url,
+    BorderRadius radius,
+  ) {
+    // Decodificar al tamaño físico en pantalla evita cargar en memoria la
+    // imagen completa que entrega el servidor.
+    final cacheSize = (size * MediaQuery.devicePixelRatioOf(context)).round();
+
+    return ClipRRect(
+      borderRadius: radius,
+      child: Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        cacheWidth: cacheSize,
         gaplessPlayback: true,
         filterQuality: FilterQuality.medium,
         errorBuilder: (context, error, stackTrace) => _buildFallback(radius),

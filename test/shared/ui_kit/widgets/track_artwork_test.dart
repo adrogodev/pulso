@@ -33,6 +33,35 @@ void main() {
       variant: TargetPlatformVariant.only(TargetPlatform.android),
     );
 
+    testWidgets('usa la URL remota cuando la pista viene de internet', (
+      tester,
+    ) async {
+      final cache = ArtworkCache(
+        loader: (id, type, size) => fail('No debe consultar MediaStore'),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TrackArtwork(
+            id: null,
+            url: 'https://img.audius.co/abc-480.jpg',
+            cache: cache,
+          ),
+        ),
+      );
+
+      final provider = tester.widget<Image>(find.byType(Image)).image;
+      // cacheWidth envuelve el NetworkImage en un ResizeImage.
+      final network = provider is ResizeImage
+          ? provider.imageProvider
+          : provider;
+      expect(network, isA<NetworkImage>());
+      expect(
+        (network as NetworkImage).url,
+        'https://img.audius.co/abc-480.jpg',
+      );
+    });
+
     testWidgets('muestra el fallback cuando no hay carátula', (tester) async {
       final cache = ArtworkCache(loader: (id, type, size) async => null);
 

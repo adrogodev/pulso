@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
+    <!-- Búsqueda y streaming de música en línea (Audius) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Permisos de acceso multimedia local para Android 13+ (API 33+) y anteriores -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />

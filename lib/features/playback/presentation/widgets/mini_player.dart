@@ -56,6 +56,7 @@ class MiniPlayer extends ConsumerWidget {
                       // Carátula o fallback
                       TrackArtwork(
                         id: trackArtworkId,
+                        url: track.artworkUrl,
                         size: 44,
                         borderRadius: BorderRadius.circular(8),
                       ),

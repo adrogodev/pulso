@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Entidad pura e inmutable que representa una pista de audio local.
+/// Entidad pura e inmutable que representa una pista de audio, local o remota.
 @immutable
 class Track {
   final String id;
@@ -17,6 +17,9 @@ class Track {
   final int? size;
   final int? dateAdded;
 
+  /// Carátula remota; solo la tienen las pistas que vienen de internet.
+  final String? artworkUrl;
+
   const Track({
     required this.id,
     required this.title,
@@ -31,7 +34,11 @@ class Track {
     this.albumId,
     this.size,
     this.dateAdded,
+    this.artworkUrl,
   });
+
+  /// Indica si la pista se reproduce por streaming en lugar de un archivo local.
+  bool get isRemote => uri.startsWith('http://') || uri.startsWith('https://');
 
   /// Duración tipada en objeto [Duration].
   Duration get duration => Duration(milliseconds: durationMs);
@@ -69,6 +76,7 @@ class Track {
     int? albumId,
     int? size,
     int? dateAdded,
+    String? artworkUrl,
   }) {
     return Track(
       id: id ?? this.id,
@@ -84,6 +92,7 @@ class Track {
       albumId: albumId ?? this.albumId,
       size: size ?? this.size,
       dateAdded: dateAdded ?? this.dateAdded,
+      artworkUrl: artworkUrl ?? this.artworkUrl,
     );
   }
 
