@@ -14,8 +14,16 @@ class JustAudioPlayerService implements AudioPlayerService {
   List<Track> _currentTracks = [];
   StreamSubscription<void>? _noisySubscription;
 
-  JustAudioPlayerService({AudioPlayer? player})
-    : _player = player ?? AudioPlayer() {
+  /// Si no se inyecta [player], se crea uno; con [equalizer] el audio pasa por
+  /// su pipeline, de modo que el ecualizador afecta a toda la reproducción.
+  JustAudioPlayerService({AudioPlayer? player, AndroidEqualizer? equalizer})
+    : _player =
+          player ??
+          AudioPlayer(
+            audioPipeline: equalizer == null
+                ? null
+                : AudioPipeline(androidAudioEffects: [equalizer]),
+          ) {
     unawaited(_initAudioSession());
   }
 
