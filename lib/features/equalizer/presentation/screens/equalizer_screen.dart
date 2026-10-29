@@ -23,6 +23,17 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(equalizerNotifierProvider.select((s) => s.errorMessage), (
+      _,
+      message,
+    ) {
+      final isSupported = ref.read(equalizerNotifierProvider).isSupported;
+      // Si no hay ecualizador, el cuerpo ya muestra el aviso.
+      if (message != null && isSupported) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
     final state = ref.watch(equalizerNotifierProvider);
     final notifier = ref.read(equalizerNotifierProvider.notifier);
 

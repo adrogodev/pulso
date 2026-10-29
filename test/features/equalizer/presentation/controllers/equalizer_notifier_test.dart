@@ -16,6 +16,11 @@ class _FakeEqualizerService implements EqualizerService {
   ];
   final List<String> calls = [];
   List<double>? savedGains;
+  bool failWrites = false;
+
+  static const _writeFailure = Result<void>.err(
+    EqualizerUnavailableFailure('no se pudo aplicar'),
+  );
 
   @override
   Future<Result<EqualizerSettings>> load() async {
@@ -30,17 +35,18 @@ class _FakeEqualizerService implements EqualizerService {
   @override
   Future<Result<void>> setEnabled(bool enabled) async {
     calls.add('enabled:$enabled');
-    return const Result.ok(null);
+    return failWrites ? _writeFailure : const Result.ok(null);
   }
 
   @override
   Future<Result<void>> setBandGain(int index, double gainDb) async {
     calls.add('gain:$index:$gainDb');
-    return const Result.ok(null);
+    return failWrites ? _writeFailure : const Result.ok(null);
   }
 
   @override
   Future<Result<void>> saveGains(List<double> gainsDb) async {
+    if (failWrites) return _writeFailure;
     savedGains = gainsDb;
     return const Result.ok(null);
   }
@@ -70,6 +76,35 @@ void main() {
       expect(state().isSupported, isTrue);
       expect(state().enabled, isTrue);
       expect(state().bands.map((b) => b.gainDb), [4, 0]);
+    });
+
+    test('revierte el interruptor y avisa si no se pudo aplicar', () async {
+      await notifier().load();
+      service.failWrites = true;
+
+      await notifier().setEnabled(false);
+
+      expect(state().enabled, isTrue);
+      expect(state().errorMessage, 'no se pudo aplicar');
+    });
+
+    test('revierte la ganancia de la banda si no se pudo aplicar', () async {
+      await notifier().load();
+      service.failWrites = true;
+
+      await notifier().setBandGain(0, 10);
+
+      expect(state().bands.first.gainDb, 4);
+      expect(state().errorMessage, 'no se pudo aplicar');
+    });
+
+    test('avisa si no se pudieron guardar las ganancias', () async {
+      await notifier().load();
+      service.failWrites = true;
+
+      await notifier().commitGains();
+
+      expect(state().errorMessage, 'no se pudo aplicar');
     });
 
     test('load marca no soportado y conserva el mensaje si falla', () async {

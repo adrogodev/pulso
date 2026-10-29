@@ -37,8 +37,15 @@ class _FakeEqualizerService implements EqualizerService {
     );
   }
 
+  bool failWrites = false;
+
   @override
   Future<Result<void>> setEnabled(bool value) async {
+    if (failWrites) {
+      return const Result.err(
+        EqualizerUnavailableFailure('No se pudo aplicar el ecualizador'),
+      );
+    }
     enabled = value;
     return const Result.ok(null);
   }
@@ -99,6 +106,16 @@ void main() {
 
       expect(service.enabled, isFalse);
       expect(firstSlider().onChanged, isNull);
+    });
+
+    testWidgets('avisa cuando un cambio no se pudo aplicar', (tester) async {
+      final service = _FakeEqualizerService()..failWrites = true;
+      await _pump(tester, service);
+
+      await tester.tap(find.text('Activar ecualizador'));
+      await tester.pump();
+
+      expect(find.text('No se pudo aplicar el ecualizador'), findsOneWidget);
     });
 
     testWidgets('Restablecer deja las bandas en 0 dB', (tester) async {

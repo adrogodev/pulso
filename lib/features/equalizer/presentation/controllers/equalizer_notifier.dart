@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:pulso/features/settings/presentation/controllers/settings_notifier.dart';
+import 'package:pulso/shared/base_domain/result/result.dart';
 
 import '../../data/services/android_equalizer_service.dart';
 import '../../data/services/just_audio_equalizer_engine.dart';
@@ -82,25 +83,41 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
     );
   }
 
+  // Los cambios se muestran al instante; si el dispositivo no los aplica, se
+  // revierten para que la pantalla no muestre un valor que no suena.
+
   Future<void> setEnabled(bool value) async {
+    final previous = state;
     state = state.copyWith(enabled: value);
-    await _service.setEnabled(value);
+    final result = await _service.setEnabled(value);
+    if (result case Err(:final failure)) {
+      state = previous.copyWith(errorMessage: failure.message);
+    }
   }
 
   /// Aplica la ganancia al instante; persistirla es tarea de [commitGains].
   Future<void> setBandGain(int index, double db) async {
+    final previous = state;
     state = state.copyWith(
       bands: [
         for (final band in state.bands)
           band.index == index ? band.copyWith(gainDb: db) : band,
       ],
     );
-    await _service.setBandGain(index, db);
+    final result = await _service.setBandGain(index, db);
+    if (result case Err(:final failure)) {
+      state = previous.copyWith(errorMessage: failure.message);
+    }
   }
 
   /// Persiste las ganancias actuales (al soltar un slider).
   Future<void> commitGains() async {
-    await _service.saveGains([for (final b in state.bands) b.gainDb]);
+    final result = await _service.saveGains([
+      for (final b in state.bands) b.gainDb,
+    ]);
+    if (result case Err(:final failure)) {
+      state = state.copyWith(errorMessage: failure.message);
+    }
   }
 
   /// Deja todas las bandas en 0 dB y lo persiste.
