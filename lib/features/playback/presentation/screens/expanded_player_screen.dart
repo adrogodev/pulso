@@ -6,20 +6,13 @@ import '../../../../shared/ui_kit/theme/app_typography.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/progress_bar.dart';
 import '../../../../shared/ui_kit/widgets/track_artwork.dart';
+import '../../../favorites/presentation/controllers/favorites_notifier.dart';
+import '../../../queue/presentation/screens/queue_screen.dart';
 import '../controllers/playback_notifier.dart';
 
 /// Pantalla completa del reproductor centrada en la canción en reproducción.
 class ExpandedPlayerScreen extends ConsumerWidget {
-  final VoidCallback? onOpenQueue;
-  final VoidCallback? onToggleFavorite;
-  final bool isFavorite;
-
-  const ExpandedPlayerScreen({
-    super.key,
-    this.onOpenQueue,
-    this.onToggleFavorite,
-    this.isFavorite = false,
-  });
+  const ExpandedPlayerScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,9 +40,19 @@ class ExpandedPlayerScreen extends ConsumerWidget {
       );
     }
 
+    // El favorito se resuelve aquí: antes dependía de callbacks que ninguna
+    // pantalla pasaba, y el botón quedaba sin efecto.
+    final isFavorite = ref.watch(
+      favoritesNotifierProvider.select((ids) => ids.contains(track.id)),
+    );
     final int? trackArtworkId = int.tryParse(track.id);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final artworkSize = (screenWidth * 0.75).clamp(200.0, 340.0);
+    // Limitada también por el alto: en horizontal o pantallas cortas, una
+    // carátula calculada solo por el ancho desbordaba los controles.
+    final screenSize = MediaQuery.sizeOf(context);
+    final artworkSize = [
+      screenSize.width * 0.75,
+      screenSize.height * 0.4,
+    ].reduce((a, b) => a < b ? a : b).clamp(120.0, 340.0);
 
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
@@ -64,12 +67,13 @@ class ExpandedPlayerScreen extends ConsumerWidget {
         title: const Text('EN REPRODUCCIÓN', style: AppTypography.labelSmall),
         centerTitle: true,
         actions: [
-          if (onOpenQueue != null)
-            IconButton(
-              icon: const Icon(Icons.queue_music_rounded),
-              tooltip: 'Cola de reproducción',
-              onPressed: onOpenQueue,
+          IconButton(
+            icon: const Icon(Icons.queue_music_rounded),
+            tooltip: 'Cola de reproducción',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const QueueScreen()),
             ),
+          ),
         ],
       ),
       body: SafeArea(
@@ -148,7 +152,9 @@ class ExpandedPlayerScreen extends ConsumerWidget {
                     tooltip: isFavorite
                         ? 'Quitar de favoritos'
                         : 'Añadir a favoritos',
-                    onPressed: onToggleFavorite,
+                    onPressed: () => ref
+                        .read(favoritesNotifierProvider.notifier)
+                        .toggleFavorite(track.id),
                   ),
                 ],
               ),
