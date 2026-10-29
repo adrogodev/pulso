@@ -34,6 +34,13 @@ void main() {
       expect(first.map((t) => t.title), ['Alfa', 'Beta']);
     });
 
+    test('sortedTracks no se puede modificar desde fuera', () {
+      const state = LibraryState(tracks: tracks);
+
+      expect(() => state.sortedTracks.removeLast(), throwsUnsupportedError);
+      expect(state.sortedTracks, hasLength(2));
+    });
+
     test('recalcula sortedTracks cuando cambia la ordenación', () {
       const state = LibraryState(tracks: tracks);
       final ascending = state.sortedTracks;

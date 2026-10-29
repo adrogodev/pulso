@@ -32,10 +32,13 @@ class LibraryState {
   static final Expando<List<Track>> _sortedCache = Expando();
 
   List<Track> get sortedTracks {
-    return _sortedCache[this] ??= const SortTracksUseCase()(
-      tracks,
-      criteria: sortCriteria,
-      order: sortOrder,
+    // Inmodificable: la misma lista se comparte entre todas las lecturas.
+    return _sortedCache[this] ??= List.unmodifiable(
+      const SortTracksUseCase()(
+        tracks,
+        criteria: sortCriteria,
+        order: sortOrder,
+      ),
     );
   }
 
