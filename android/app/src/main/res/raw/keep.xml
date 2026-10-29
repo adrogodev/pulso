@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  audio_service resuelve sus iconos por nombre en tiempo de ejecución, así que
+  la reducción de recursos del build de release los eliminaba y la sesión
+  multimedia fallaba al construir sus acciones (IllegalArgumentException).
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/audio_service_*,@mipmap/ic_launcher" />
