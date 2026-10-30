@@ -15,6 +15,9 @@ class JustAudioPlayerService implements AudioPlayerService {
   final OnlineAudioCache? onlineCache;
   List<Track> _currentTracks = [];
   StreamSubscription<void>? _noisySubscription;
+  AppLoopMode _appLoopMode = AppLoopMode.off;
+  final _loopModeController = StreamController<AppLoopMode>.broadcast();
+  final List<StreamSubscription<dynamic>> _repeatSubscriptions = [];
 
   /// Si no se inyecta [player], se crea uno; con [equalizer] el audio pasa por
   /// su pipeline, de modo que el ecualizador afecta a toda la reproducción.
@@ -31,6 +34,7 @@ class JustAudioPlayerService implements AudioPlayerService {
                  : AudioPipeline(androidAudioEffects: [equalizer]),
            ) {
     unawaited(_initAudioSession());
+    _repeatCurrentTrack();
   }
 
   Future<void> _initAudioSession() async {
@@ -76,16 +80,9 @@ class JustAudioPlayerService implements AudioPlayerService {
   @override
   Stream<bool> get shuffleModeStream => _player.shuffleModeEnabledStream;
 
+  /// Modo de repetición de la app; ver [setLoopMode].
   @override
-  Stream<AppLoopMode> get loopModeStream {
-    return _player.loopModeStream.map(
-      (mode) => switch (mode) {
-        LoopMode.off => AppLoopMode.off,
-        LoopMode.one => AppLoopMode.one,
-        LoopMode.all => AppLoopMode.all,
-      },
-    );
-  }
+  Stream<AppLoopMode> get loopModeStream => _loopModeController.stream;
 
   @override
   Stream<double> get volumeStream => _player.volumeStream;
@@ -197,14 +194,93 @@ class JustAudioPlayerService implements AudioPlayerService {
     await _player.setShuffleModeEnabled(enabled);
   }
 
+  /// "Repetir uno" no usa LoopMode.one de just_audio: con ese modo el
+  /// reproductor considera que la siguiente y la anterior son la misma pista,
+  /// y los botones (de la app, la notificación y los auriculares) no avanzan.
+  /// El reproductor queda sin repetición y [_repeatCurrentTrack] vuelve a
+  /// poner la pista cuando termina sola.
   @override
   Future<void> setLoopMode(AppLoopMode mode) async {
-    final justAudioMode = switch (mode) {
-      AppLoopMode.off => LoopMode.off,
-      AppLoopMode.one => LoopMode.one,
-      AppLoopMode.all => LoopMode.all,
-    };
-    await _player.setLoopMode(justAudioMode);
+    _appLoopMode = mode;
+    await _player.setLoopMode(
+      mode == AppLoopMode.all ? LoopMode.all : LoopMode.off,
+    );
+    _loopModeController.add(mode);
+  }
+
+  void _repeatCurrentTrack() {
+    _repeatSubscriptions.add(
+      _player.positionDiscontinuityStream.listen((discontinuity) {
+        // Solo el avance automático al terminar; un salto del usuario se
+        // respeta aunque esté activo repetir uno.
+        if (_appLoopMode != AppLoopMode.one ||
+            discontinuity.reason != PositionDiscontinuityReason.autoAdvance) {
+          return;
+        }
+        final previous = discontinuity.previousEvent;
+        final finished = previous.currentIndex;
+        if (finished == null) return;
+        // Un salto desde la notificación o los auriculares lo hace el
+        // reproductor nativo y también llega como autoAdvance; solo se repite
+        // si la pista realmente llegó al final.
+        final ended = reachedEnd(
+          previous: previous,
+          at: discontinuity.event.updateTime,
+          duration: previous.duration ?? _durationAt(finished),
+          playing: _player.playing,
+        );
+        if (ended) {
+          _afterEvent(() => _player.seek(Duration.zero, index: finished));
+        }
+      }),
+    );
+    _repeatSubscriptions.add(
+      _player.processingStateStream.listen((state) {
+        // La última pista de la cola termina sin avance automático.
+        if (_appLoopMode == AppLoopMode.one &&
+            state == ProcessingState.completed) {
+          _afterEvent(() async {
+            await _player.seek(Duration.zero, index: _player.currentIndex);
+            await _player.play();
+          });
+        }
+      }),
+    );
+  }
+
+  /// Margen entre la posición estimada y la duración para dar una pista por
+  /// terminada; cubre el retraso de los eventos del reproductor.
+  static const endTolerance = Duration(seconds: 2);
+
+  /// Si la pista de [previous] terminó sola en el instante [at]: estaba
+  /// sonando y su posición estimada alcanzó la [duration]. Sin duración
+  /// conocida se asume el final, como hacía el reproductor.
+  @visibleForTesting
+  static bool reachedEnd({
+    required PlaybackEvent previous,
+    required DateTime at,
+    required Duration? duration,
+    required bool playing,
+  }) {
+    if (!playing) return false;
+    if (duration == null || duration <= Duration.zero) return true;
+    final position =
+        previous.updatePosition + at.difference(previous.updateTime);
+    return position >= duration - endTolerance;
+  }
+
+  Duration? _durationAt(int index) =>
+      index < _currentTracks.length ? _currentTracks[index].duration : null;
+
+  /// Los streams de just_audio son síncronos: un seek dentro de su listener
+  /// falla con "Controller is already firing an event". Se ejecuta [action]
+  /// cuando el evento actual terminó de emitirse.
+  void _afterEvent(Future<void> Function() action) {
+    unawaited(
+      Future<void>(
+        action,
+      ).catchError((Object e) => debugPrint('Error al repetir la pista: $e')),
+    );
   }
 
   @override
@@ -220,6 +296,10 @@ class JustAudioPlayerService implements AudioPlayerService {
   @override
   Future<void> dispose() async {
     await _noisySubscription?.cancel();
+    for (final subscription in _repeatSubscriptions) {
+      await subscription.cancel();
+    }
+    await _loopModeController.close();
     await _player.dispose();
   }
 }
