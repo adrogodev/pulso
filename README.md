@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Aplicación de reproducción musical nativa, minimalista y moderna para Android: tu biblioteca local offline y música libre en línea vía Audius, gratis y sin anuncios.</strong>
+  <strong>Aplicación de reproducción musical nativa, minimalista y moderna para Android: tu biblioteca local offline y música completa en línea de Audius, Jamendo e Internet Archive, gratis y sin anuncios.</strong>
 </p>
 
 <p align="center">
@@ -92,7 +92,7 @@ lib/
         ├── data/
         │   ├── data_sources/
         │   │   ├── local/      # MediaStore, SQLite
-        │   │   └── remote/     # APIs HTTP (Audius)
+        │   │   └── remote/     # APIs HTTP (Audius, Jamendo, Internet Archive)
         │   ├── dto/            # Respuestas crudas de APIs remotas
         │   ├── mappers/        # DTO → modelos de dominio
         │   └── services/       # Implementaciones de los contratos
@@ -148,10 +148,16 @@ lib/
 - [x] **Búsqueda Integrada:**
   - Búsqueda en tiempo real insensible a mayúsculas, minúsculas y tildes.
   - Filtros por categoría: Todo, Canciones, Álbumes y Artistas.
-- [x] **Música en Línea (Audius):**
-  - Búsqueda de canciones y artistas en la API pública de [Audius](https://audius.co): gratuita, sin cuenta, sin clave y sin anuncios.
+- [x] **Música en Línea (varias fuentes):**
+  - Una sola búsqueda consulta en paralelo APIs públicas, gratuitas y sin anuncios, que permiten escuchar las canciones completas:
+    - [Audius](https://audius.co) (artistas independientes), [Jamendo](https://www.jamendo.com) (Creative Commons) e [Internet Archive](https://archive.org/details/audio) (grabaciones antiguas, dominio público y conciertos).
+  - Los resultados se unen sin duplicados y se ordenan por relevancia, primero las canciones del artista buscado. Una fuente caída o lenta (más de 12 s) se omite sin afectar al resto.
+  - Jamendo requiere un `client_id` gratuito de [devportal.jamendo.com](https://devportal.jamendo.com); se pasa al compilar con `--dart-define=JAMENDO_CLIENT_ID=<id>`. Sin él, esa fuente no se consulta.
   - Reproducción por streaming con el mismo motor de audio, en segundo plano y con carátula en la notificación.
   - Al elegir una canción se abre la vista En reproducción; la canción actual queda resaltada en los resultados y el mini reproductor permite volver a ella.
+- [x] **Caché de Música en Línea:**
+  - Las canciones en línea se guardan mientras suenan en la caché de la app (no en el almacenamiento del dispositivo), así que repetirlas no vuelve a descargarlas.
+  - Ocupa como máximo 500 MB, borrando primero lo más antiguo, y se puede vaciar desde Ajustes.
 - [x] **Ecualizador:**
   - Una barra por cada banda que ofrece el dispositivo (por ejemplo, de 60 Hz a 14 kHz), con activación y restablecimiento a 0 dB.
   - Se aplica a la música local y en línea, y conserva los valores entre sesiones.
@@ -172,7 +178,7 @@ lib/
 2. **Archivos fuera de MediaStore:** Android restringe el acceso al almacenamiento global mediante *Scoped Storage*. Los archivos colocados en carpetas privadas de otras aplicaciones pueden requerir ser movidos a carpetas estándar (`Music`, `Download`) para ser indexados por MediaStore.
 3. **Carátulas de audio incrustadas:** En archivos de audio que carecen de portada incrustada en las etiquetas ID3, Pulso muestra un fallback minimalista basado en su logotipo y onda geométrica monocromática.
 4. **Última sesión:** solo se restauran canciones locales; una canción en línea no se puede reconstruir solo con su identificador.
-5. **Catálogo en línea:** Audius reúne sobre todo artistas independientes; no incluye el catálogo de los grandes sellos.
+5. **Catálogo en línea:** ninguna API pública, gratuita y legal permite escuchar completo el catálogo de los grandes sellos, así que esos artistas pueden no aparecer.
 
 ---
 
@@ -248,7 +254,7 @@ Pulso solicita únicamente los permisos indispensables para la lectura de audio 
 | **Android 13+ (API 33+)** | `android.permission.READ_MEDIA_AUDIO` | Acceso granular únicamente a archivos clasificados como audio. No accede a fotos ni videos. |
 | **Android 12 y anteriores** | `android.permission.READ_EXTERNAL_STORAGE` | Acceso de lectura al almacenamiento multimedia externo. |
 | **Todas las versiones** | `android.permission.FOREGROUND_SERVICE`<br>`android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK`<br>`android.permission.WAKE_LOCK` | Permite la reproducción ininterrumpida cuando la aplicación pasa a segundo plano o se apaga la pantalla. |
-| **Todas las versiones** | `android.permission.INTERNET` | Búsqueda y streaming de música en línea desde Audius. |
+| **Todas las versiones** | `android.permission.INTERNET` | Búsqueda y streaming de música en línea. |
 
 Pulso pide el permiso de audio al abrirse por primera vez. Si el usuario lo rechaza, puede concederlo después desde Ajustes o al reescanear la biblioteca.
 
@@ -284,7 +290,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
   * `test/features/library/presentation/screens/detail_screens_test.dart`: Vistas en detalle de álbum y artista, botones de reproducción y diálogo de información técnica.
   * `test/features/playback/presentation/screens/expanded_player_screen_test.dart`: Favorito y acceso a la cola desde el reproductor expandido.
 * **Funcionalidades nuevas:**
-  * `test/features/online_search/**`: Servicio de Audius, controlador con descarte de respuestas viejas y pantalla de búsqueda en línea.
+  * `test/features/online_search/**`: Fuentes en línea, unión multifuente (duplicados, relevancia, fallos y tiempo límite), controlador con descarte de respuestas viejas y pantalla de búsqueda en línea.
   * `test/features/equalizer/**`: Persistencia, reaplicación y reversión de cambios del ecualizador, y su pantalla.
   * `test/features/library/domain/use_cases/filter_music_test.dart`: Filtro de notas de voz y audios cortos sin artista.
   * `test/shared/base_data/artwork/artwork_cache_test.dart`: Caché LRU de carátulas.

@@ -38,7 +38,7 @@ lib/
         ├── data/
         │   ├── data_sources/
         │   │   ├── local/      # MediaStore, SQLite
-        │   │   └── remote/     # APIs HTTP (Audius)
+        │   │   └── remote/     # APIs HTTP (Audius, Jamendo, Internet Archive)
         │   ├── dto/            # Respuestas crudas de APIs remotas
         │   ├── mappers/        # DTO → modelos de dominio
         │   └── services/       # Implementaciones de los contratos
