@@ -163,7 +163,37 @@ void main() {
     testWidgets('muestra el estado inicial antes de buscar', (tester) async {
       await tester.pumpWidget(_app(const Result.ok([])));
 
-      expect(find.text('Busca música libre en Audius'), findsOneWidget);
+      expect(find.text('Busca música en línea'), findsOneWidget);
+      expect(
+        find.textContaining('Audius, Jamendo e Internet Archive'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('muestra artista, álbum y año de cada resultado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          const Result.ok([
+            Track(
+              id: 'archive:boleros/lejos.mp3',
+              title: 'Lejos',
+              artist: 'Trío Tabú',
+              album: 'Boleros 1950',
+              durationMs: 169000,
+              year: 1950,
+              uri: 'https://archive.org/download/boleros/lejos.mp3',
+            ),
+            _lluvia,
+          ]),
+        ),
+      );
+
+      await _search(tester);
+
+      expect(find.text('Trío Tabú • Boleros 1950 • 1950'), findsOneWidget);
+      expect(find.text('Artista Uno • Audius'), findsOneWidget);
     });
 
     testWidgets('lista los resultados al enviar la búsqueda', (tester) async {

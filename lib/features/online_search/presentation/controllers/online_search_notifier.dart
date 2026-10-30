@@ -1,12 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/data_sources/remote/audius_remote_data_source.dart';
+import '../../data/data_sources/remote/internet_archive_remote_data_source.dart';
+import '../../data/data_sources/remote/jamendo_remote_data_source.dart';
 import '../../data/services/audius_music_service.dart';
+import '../../data/services/multi_source_music_service.dart';
+import '../../data/services/source_music_services.dart';
 import '../../domain/services/online_music_service.dart';
 import 'online_search_state.dart';
 
+/// `client_id` gratuito de Jamendo; sin él, la fuente no se consulta.
+/// Se pasa al compilar con `--dart-define=JAMENDO_CLIENT_ID=...`.
+const String jamendoClientId = String.fromEnvironment('JAMENDO_CLIENT_ID');
 final onlineMusicServiceProvider = Provider<OnlineMusicService>((ref) {
-  return AudiusMusicService(AudiusRemoteDataSource());
+  // Solo fuentes que permiten escuchar la canción completa. El orden decide
+  // qué versión se queda ante un duplicado.
+  return MultiSourceMusicService([
+    AudiusMusicService(AudiusRemoteDataSource()),
+    if (jamendoClientId.isNotEmpty)
+      JamendoMusicService(JamendoRemoteDataSource(clientId: jamendoClientId)),
+    InternetArchiveMusicService(InternetArchiveRemoteDataSource()),
+  ]);
 });
 
 final onlineSearchNotifierProvider =

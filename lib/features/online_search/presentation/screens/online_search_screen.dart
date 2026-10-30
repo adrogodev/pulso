@@ -12,7 +12,8 @@ import '../../../playback/presentation/widgets/mini_player.dart';
 import '../controllers/online_search_notifier.dart';
 import '../controllers/online_search_state.dart';
 
-/// Búsqueda de música libre en Audius, reproducible en segundo plano.
+/// Búsqueda de música en varias fuentes en línea, reproducible en segundo
+/// plano.
 class OnlineSearchScreen extends ConsumerStatefulWidget {
   const OnlineSearchScreen({super.key});
 
@@ -48,7 +49,7 @@ class _OnlineSearchScreenState extends ConsumerState<OnlineSearchScreen> {
               style: AppTypography.bodyLarge,
               textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
-                hintText: 'Buscar canciones o artistas en Audius...',
+                hintText: 'Buscar canciones, artistas o álbumes...',
                 prefixIcon: Icon(
                   Icons.public_rounded,
                   color: AppColors.textSecondary,
@@ -92,14 +93,19 @@ class _OnlineSearchScreenState extends ConsumerState<OnlineSearchScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Busca música libre en Audius',
+              'Busca música en línea',
               style: AppTypography.titleMedium,
             ),
             const SizedBox(height: 4),
-            Text(
-              'Gratis, sin anuncios y con reproducción en segundo plano',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Canciones completas de Audius, Jamendo e Internet Archive, '
+                'gratis y sin anuncios.',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -142,34 +148,33 @@ class _OnlineSearchScreenState extends ConsumerState<OnlineSearchScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
-            track.genre != null
-                ? '${track.artist} • ${track.genre}'
-                : track.artist,
+            [
+              track.artist,
+              track.album,
+              if (track.year != null) '${track.year}',
+            ].join(' • '),
             style: AppTypography.bodyMedium,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: isCurrent
-              ? Row(
-                  key: ValueKey('sonando-${track.id}'),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (nowPlaying.isPlaying)
-                      const PulsoWaveform(width: 20, height: 16)
-                    else
-                      const Icon(
-                        Icons.pause_rounded,
-                        size: 18,
-                        color: AppColors.textPrimary,
-                      ),
-                    const SizedBox(width: 8),
-                    Text(
-                      track.formattedDuration,
-                      style: AppTypography.labelSmall,
-                    ),
-                  ],
-                )
-              : Text(track.formattedDuration, style: AppTypography.labelSmall),
+          trailing: Row(
+            key: isCurrent ? ValueKey('sonando-${track.id}') : null,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isCurrent) ...[
+                if (nowPlaying.isPlaying)
+                  const PulsoWaveform(width: 20, height: 16)
+                else
+                  const Icon(
+                    Icons.pause_rounded,
+                    size: 18,
+                    color: AppColors.textPrimary,
+                  ),
+                const SizedBox(width: 8),
+              ],
+              Text(track.formattedDuration, style: AppTypography.labelSmall),
+            ],
+          ),
           onTap: () => _play(track, state.results, isCurrent: isCurrent),
         );
       },
