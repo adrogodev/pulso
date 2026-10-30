@@ -1,3 +1,5 @@
+import '../data_sources/remote/http_get.dart';
+
 /// Pista tal como la devuelve la API pública de Audius.
 ///
 /// Solo se usa dentro de la capa de datos; el resto de la app trabaja con
@@ -44,20 +46,10 @@ class AudiusTrackDto {
           : 'Artista desconocido',
       durationSeconds: duration is num ? duration.toInt() : 0,
       genre: genre is String && genre.isNotEmpty ? genre : null,
-      artworkUrl: artwork is Map ? _httpsOnly(artwork['480x480']) : null,
+      artworkUrl: artwork is Map ? httpsUrlOrNull(artwork['480x480']) : null,
       // Audius marca explícitamente las pistas bloqueadas; si el campo no
       // viene, la pista se considera reproducible.
       isStreamable: isStreamable is bool ? isStreamable : true,
     );
-  }
-
-  /// La carátula llega a la notificación del sistema y a Image.network, así
-  /// que solo se aceptan URLs https.
-  static String? _httpsOnly(Object? url) {
-    if (url is! String) return null;
-    final uri = Uri.tryParse(url);
-    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
-        ? url
-        : null;
   }
 }
