@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../shared/base_data/audio/audio_player_service.dart';
+import '../../../../shared/base_data/audio/online_audio_cache.dart';
 import '../../../equalizer/presentation/controllers/equalizer_notifier.dart';
 import '../../../../shared/base_data/audio/just_audio_player_service.dart';
 import '../../../../shared/base_domain/models/track.dart';
@@ -12,13 +14,23 @@ import '../../../settings/domain/services/settings_repository.dart';
 import '../../../settings/presentation/controllers/settings_notifier.dart';
 import 'playback_state.dart';
 
+/// Caché de la música en línea dentro del directorio de caché de la app.
+final onlineAudioCacheProvider = Provider<OnlineAudioCache>((ref) {
+  return OnlineAudioCache(
+    directory: () async => Directory(
+      '${(await getApplicationCacheDirectory()).path}'
+      '${Platform.pathSeparator}online_audio',
+    ),
+  );
+});
+
 final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
   // El ecualizador tiene que estar en el pipeline desde que se crea el
   // reproductor; AndroidEqualizer solo existe en Android.
+  final isAndroid = !kIsWeb && Platform.isAndroid;
   final service = JustAudioPlayerService(
-    equalizer: !kIsWeb && Platform.isAndroid
-        ? ref.watch(androidEqualizerProvider)
-        : null,
+    equalizer: isAndroid ? ref.watch(androidEqualizerProvider) : null,
+    onlineCache: isAndroid ? ref.watch(onlineAudioCacheProvider) : null,
   );
   ref.onDispose(() {
     service.dispose();

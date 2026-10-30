@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,7 +7,9 @@ import 'package:pulso/features/equalizer/domain/models/equalizer_settings.dart';
 import 'package:pulso/features/equalizer/domain/services/equalizer_service.dart';
 import 'package:pulso/features/equalizer/presentation/controllers/equalizer_notifier.dart';
 import 'package:pulso/features/equalizer/presentation/screens/equalizer_screen.dart';
+import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
 import 'package:pulso/features/settings/presentation/screens/settings_screen.dart';
+import 'package:pulso/shared/base_data/audio/online_audio_cache.dart';
 import 'package:pulso/shared/base_domain/error/failures.dart';
 import 'package:pulso/shared/base_domain/result/result.dart';
 
@@ -34,6 +38,47 @@ void main() {
       },
     );
 
+    testWidgets('muestra el tamaño de la caché en línea y permite vaciarla', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final root = await tester.runAsync(
+        () => Directory.systemTemp.createTemp('pulso_settings_cache'),
+      );
+      addTearDown(() => tester.runAsync(() => root!.delete(recursive: true)));
+      await tester.runAsync(
+        () =>
+            File('${root!.path}/a.audio')
+                .writeAsBytes(List.filled(2 * 1024 * 1024, 0)),
+      );
+      final cache = OnlineAudioCache(directory: () async => root!);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [onlineAudioCacheProvider.overrideWithValue(cache)],
+          child: const MaterialApp(home: SettingsScreen()),
+        ),
+      );
+      await _pumpUntilFound(tester, find.text('2.0 MB guardados'));
+
+      expect(find.text('Caché de música en línea'), findsOneWidget);
+      expect(find.text('2.0 MB guardados'), findsOneWidget);
+
+      // La entrada está al final de Ajustes: hay que desplazarse para tocarla.
+      await tester.ensureVisible(find.text('Vaciar'));
+      await tester.pump();
+      await tester.tap(find.text('Vaciar'));
+      await _pumpUntilFound(tester, find.text('Sin canciones guardadas'));
+
+      expect(find.text('Sin canciones guardadas'), findsOneWidget);
+      expect(await tester.runAsync(() => cache.sizeBytes()), 0);
+    });
+
     testWidgets('abre el ecualizador desde Ajustes', (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
@@ -59,6 +104,17 @@ void main() {
       expect(find.byType(EqualizerScreen), findsOneWidget);
     });
   });
+}
+
+/// Las lecturas de disco reales se resuelven fuera del reloj simulado del
+/// test: se deja correr el tiempo real y se redibuja hasta ver el resultado.
+Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 40 && finder.evaluate().isEmpty; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+  }
 }
 
 /// Simula un dispositivo sin ecualizador, sin canales de plataforma.

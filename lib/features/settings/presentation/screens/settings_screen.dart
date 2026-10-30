@@ -8,6 +8,7 @@ import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
 import 'package:pulso/shared/utils/metadata_formatter.dart';
 
 import '../controllers/settings_notifier.dart';
+import '../widgets/online_cache_tile.dart';
 
 /// Pantalla de configuración, estado de permisos y preferencias locales de Pulso.
 class SettingsScreen extends ConsumerWidget {
@@ -210,6 +211,8 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                const Divider(),
+                const OnlineCacheTile(),
               ],
             ),
           ),

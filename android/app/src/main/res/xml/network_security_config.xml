@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La caché de música en línea (LockCachingAudioSource de just_audio) entrega el
+  audio al reproductor a través de un proxy HTTP local. Solo ese tráfico dentro
+  del propio dispositivo puede ir sin cifrar; todo lo demás sigue exigiendo
+  HTTPS, que es el comportamiento por defecto de Android.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

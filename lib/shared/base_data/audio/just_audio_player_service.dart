@@ -7,23 +7,29 @@ import 'package:just_audio_background/just_audio_background.dart';
 
 import '../../base_domain/models/track.dart';
 import 'audio_player_service.dart';
+import 'online_audio_cache.dart';
 
 /// Implementación real del motor de audio mediante [just_audio].
 class JustAudioPlayerService implements AudioPlayerService {
   final AudioPlayer _player;
+  final OnlineAudioCache? onlineCache;
   List<Track> _currentTracks = [];
   StreamSubscription<void>? _noisySubscription;
 
   /// Si no se inyecta [player], se crea uno; con [equalizer] el audio pasa por
   /// su pipeline, de modo que el ecualizador afecta a toda la reproducción.
-  JustAudioPlayerService({AudioPlayer? player, AndroidEqualizer? equalizer})
-    : _player =
-          player ??
-          AudioPlayer(
-            audioPipeline: equalizer == null
-                ? null
-                : AudioPipeline(androidAudioEffects: [equalizer]),
-          ) {
+  /// Con [onlineCache], las pistas en línea se guardan y se repiten desde disco.
+  JustAudioPlayerService({
+    AudioPlayer? player,
+    AndroidEqualizer? equalizer,
+    this.onlineCache,
+  }) : _player =
+           player ??
+           AudioPlayer(
+             audioPipeline: equalizer == null
+                 ? null
+                 : AudioPipeline(androidAudioEffects: [equalizer]),
+           ) {
     unawaited(_initAudioSession());
   }
 
@@ -96,28 +102,25 @@ class JustAudioPlayerService implements AudioPlayerService {
         ? initialIndex
         : 0;
 
-    final audioSources = tracks.map((track) {
-      final uri =
-          track.uri.startsWith('content://') ||
-              track.uri.startsWith('file://') ||
-              track.uri.startsWith('http')
-          ? Uri.parse(track.uri)
-          : Uri.file(track.uri);
-
-      return AudioSource.uri(
-        uri,
-        tag: MediaItem(
-          id: track.id,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          duration: track.duration,
-          artUri: track.artworkUrl != null
-              ? Uri.tryParse(track.artworkUrl!)
-              : null,
-        ),
+    final audioSources = <AudioSource>[];
+    for (final track in tracks) {
+      final tag = MediaItem(
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration,
+        artUri: track.artworkUrl != null
+            ? Uri.tryParse(track.artworkUrl!)
+            : null,
       );
-    }).toList();
+      final cache = onlineCache;
+      audioSources.add(
+        cache != null
+            ? await cache.audioSourceFor(track, tag: tag)
+            : _uriSource(track, tag),
+      );
+    }
 
     try {
       await _player.setAudioSources(
@@ -125,10 +128,23 @@ class JustAudioPlayerService implements AudioPlayerService {
         initialIndex: safeIndex,
         initialPosition: Duration.zero,
       );
+      // Mantiene la caché acotada sin demorar el inicio de la reproducción.
+      final cache = onlineCache;
+      if (cache != null) unawaited(cache.trim());
     } catch (e, st) {
       debugPrint('Error al cargar la cola en JustAudio: $e\n$st');
       rethrow;
     }
+  }
+
+  static AudioSource _uriSource(Track track, MediaItem tag) {
+    final uri =
+        track.uri.startsWith('content://') ||
+            track.uri.startsWith('file://') ||
+            track.uri.startsWith('http')
+        ? Uri.parse(track.uri)
+        : Uri.file(track.uri);
+    return AudioSource.uri(uri, tag: tag);
   }
 
   @override
