@@ -21,7 +21,8 @@ class JustAudioPlayerService implements AudioPlayerService {
 
   /// Si no se inyecta [player], se crea uno; con [equalizer] el audio pasa por
   /// su pipeline, de modo que el ecualizador afecta a toda la reproducción.
-  /// Con [onlineCache], las pistas en línea se guardan y se repiten desde disco.
+  /// Con [onlineCache], las pistas en línea suenan desde su URL, se guardan
+  /// aparte mientras suenan y se repiten desde disco.
   JustAudioPlayerService({
     AudioPlayer? player,
     AndroidEqualizer? equalizer,
@@ -35,6 +36,20 @@ class JustAudioPlayerService implements AudioPlayerService {
            ) {
     unawaited(_initAudioSession());
     _repeatCurrentTrack();
+    _cacheCurrentTrack();
+  }
+
+  /// Guarda en la caché solo la pista que suena, no toda la cola.
+  void _cacheCurrentTrack() {
+    final cache = onlineCache;
+    if (cache == null) return;
+    _repeatSubscriptions.add(
+      _player.currentIndexStream.listen((index) {
+        if (index != null && index >= 0 && index < _currentTracks.length) {
+          unawaited(cache.saveInBackground(_currentTracks[index]));
+        }
+      }),
+    );
   }
 
   Future<void> _initAudioSession() async {

@@ -1,16 +1,22 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../base_domain/models/track.dart';
 
+/// Descarga [uri] completa en [target]; se inyecta en los tests.
+typedef AudioDownload = Future<void> Function(Uri uri, File target);
+
 /// Caché en disco de la música en línea, dentro del directorio de caché de la
 /// app (no en la biblioteca del teléfono).
 ///
-/// Mientras una pista en línea suena se guarda completa; las siguientes veces
-/// se reproduce desde el archivo, sin red: arranca al instante y no se corta
-/// con una conexión inestable. Android puede vaciar este directorio si le
-/// falta espacio, y [trim] lo mantiene por debajo de [maxBytes].
+/// Una pista en línea suena directo desde su URL, tal cual la entrega el
+/// servidor, y a la vez se descarga aparte con [saveInBackground]; las
+/// siguientes veces se reproduce desde el archivo, sin red. Solo se usa una
+/// copia completa: si la descarga se corta, se descarta. Android puede vaciar
+/// este directorio si le falta espacio, y [trim] lo mantiene por debajo de
+/// [maxBytes].
 class OnlineAudioCache {
   static const int defaultMaxBytes = 500 * 1024 * 1024;
 
@@ -18,8 +24,16 @@ class OnlineAudioCache {
   /// obtener el directorio de caché de la app es asíncrono.
   final Future<Directory> Function() directory;
   final int maxBytes;
+  final AudioDownload _download;
 
-  OnlineAudioCache({required this.directory, this.maxBytes = defaultMaxBytes});
+  /// Descargas en curso, por id de pista, para no repetirlas.
+  final Set<String> _saving = {};
+
+  OnlineAudioCache({
+    required this.directory,
+    this.maxBytes = defaultMaxBytes,
+    AudioDownload? download,
+  }) : _download = download ?? httpDownload;
 
   Future<Directory> get _root async {
     final dir = await directory();
@@ -33,17 +47,17 @@ class OnlineAudioCache {
     return File('${(await _root).path}${Platform.pathSeparator}$name.audio');
   }
 
-  /// Fuente de audio para la pista: en línea con caché, local sin ella.
+  /// Fuente de audio para la pista: la copia completa guardada si existe; si
+  /// no, la URL en línea. Las pistas locales se reproducen directo.
+  ///
+  /// No se usa el proxy de LockCachingAudioSource: mientras descargaba podía
+  /// cerrar el audio antes de tiempo y la canción saltaba a la siguiente.
   Future<AudioSource> audioSourceFor(Track track, {Object? tag}) async {
     if (track.isRemote) {
-      // Experimental en just_audio 0.10, pero es la vía oficial para guardar
-      // el streaming mientras suena; su uso está fijado por un test.
-      // ignore: experimental_member_use
-      return LockCachingAudioSource(
-        Uri.parse(track.uri),
-        cacheFile: await fileFor(track),
-        tag: tag,
-      );
+      final file = await fileFor(track);
+      return await _isComplete(file)
+          ? AudioSource.uri(Uri.file(file.path), tag: tag)
+          : AudioSource.uri(Uri.parse(track.uri), tag: tag);
     }
     final uri =
         track.uri.startsWith('content://') || track.uri.startsWith('file://')
@@ -51,6 +65,64 @@ class OnlineAudioCache {
         : Uri.file(track.uri);
     return AudioSource.uri(uri, tag: tag);
   }
+
+  /// Guarda en la caché la pista en línea que empieza a sonar. No hace nada
+  /// si ya está guardada o descargándose; un fallo solo se registra, porque la
+  /// reproducción no depende de la caché.
+  Future<void> saveInBackground(Track track) async {
+    // Se marca antes de cualquier espera para que dos llamadas seguidas no
+    // descarguen la misma pista.
+    if (!track.isRemote || !_saving.add(track.id)) return;
+    try {
+      final file = await fileFor(track);
+      if (await _isComplete(file)) return;
+      await _download(Uri.parse(track.uri), file);
+    } catch (e) {
+      debugPrint('No se pudo guardar ${track.id} en la caché: $e');
+    } finally {
+      _saving.remove(track.id);
+    }
+  }
+
+  /// Descarga a un `.part` y lo renombra solo si llegaron todos los bytes
+  /// declarados; si no, lo borra y falla.
+  static Future<void> httpDownload(Uri uri, File target) async {
+    final part = File('${target.path}.part');
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15);
+    try {
+      final response = await (await client.getUrl(uri)).close();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('HTTP ${response.statusCode}', uri: uri);
+      }
+      final sink = part.openWrite();
+      var received = 0;
+      try {
+        await for (final chunk in response) {
+          received += chunk.length;
+          sink.add(chunk);
+        }
+      } finally {
+        await sink.close();
+      }
+      if (response.contentLength >= 0 && received != response.contentLength) {
+        throw HttpException(
+          'Descarga incompleta: $received de ${response.contentLength} bytes',
+          uri: uri,
+        );
+      }
+      await part.rename(target.path);
+    } catch (_) {
+      if (await part.exists()) await part.delete();
+      rethrow;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Hay copia completa: existe el archivo y no quedó una descarga a medias.
+  static Future<bool> _isComplete(File file) async =>
+      await file.exists() && !await File('${file.path}.part').exists();
 
   /// Espacio ocupado, incluidas las descargas a medias (.part).
   Future<int> sizeBytes() async {

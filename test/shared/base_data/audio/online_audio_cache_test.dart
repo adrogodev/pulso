@@ -1,7 +1,4 @@
-// LockCachingAudioSource es experimental en just_audio 0.10; el test fija
-// que la caché lo use, así un cambio de su API se detecta aquí.
-// ignore_for_file: experimental_member_use
-
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -87,12 +84,120 @@ void main() {
       expect(await cache.sizeBytes(), 0);
     });
 
-    test('las pistas en línea se reproducen desde la caché', () async {
+    test('sin copia completa, la pista suena directo desde la URL', () async {
       final source = await cache.audioSourceFor(_online, tag: 'x');
 
-      expect(source, isA<LockCachingAudioSource>());
-      final file = await (source as LockCachingAudioSource).cacheFile;
-      expect(file.path, (await cache.fileFor(_online)).path);
+      expect(source, isA<UriAudioSource>());
+      expect((source as UriAudioSource).uri.toString(), _online.uri);
+    });
+
+    test('con copia completa, la pista suena desde el archivo', () async {
+      final file = await cache.fileFor(_online);
+      await file.writeAsBytes([1, 2, 3]);
+
+      final source = await cache.audioSourceFor(_online, tag: 'x');
+
+      expect((source as UriAudioSource).uri, Uri.file(file.path));
+    });
+
+    test('una descarga a medias no se usa para reproducir', () async {
+      final file = await cache.fileFor(_online);
+      await file.writeAsBytes([1, 2, 3]);
+      await File('${file.path}.part').writeAsBytes([4]);
+
+      final source = await cache.audioSourceFor(_online, tag: 'x');
+
+      expect((source as UriAudioSource).uri.toString(), _online.uri);
+    });
+  });
+
+  group('OnlineAudioCache.saveInBackground', () {
+    late List<(Uri, String)> downloads;
+    late Completer<void> release;
+
+    setUp(() {
+      downloads = [];
+      release = Completer<void>();
+      cache = OnlineAudioCache(
+        directory: () async => root,
+        download: (uri, target) async {
+          downloads.add((uri, target.path));
+          await release.future;
+          await target.writeAsBytes([1]);
+        },
+      );
+    });
+
+    test('descarga la pista en línea a su archivo de la caché', () async {
+      final saving = cache.saveInBackground(_online);
+      release.complete();
+      await saving;
+
+      expect(downloads.single.$1.toString(), _online.uri);
+      expect(downloads.single.$2, (await cache.fileFor(_online)).path);
+    });
+
+    test('no repite una descarga en curso ni una ya guardada', () async {
+      final first = cache.saveInBackground(_online);
+      final second = cache.saveInBackground(_online);
+      release.complete();
+      await Future.wait([first, second]);
+      await cache.saveInBackground(_online);
+
+      expect(downloads, hasLength(1));
+    });
+
+    test('no descarga las pistas locales', () async {
+      release.complete();
+      await cache.saveInBackground(_local);
+
+      expect(downloads, isEmpty);
+    });
+  });
+
+  group('OnlineAudioCache.httpDownload', () {
+    late ServerSocket server;
+
+    /// Servidor HTTP mínimo que declara [declared] bytes, envía [body] y
+    /// cierra la conexión, como un servidor que se corta a mitad de camino.
+    Future<Uri> serve({required int declared, required List<int> body}) async {
+      server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((socket) async {
+        await socket.first;
+        socket.add(
+          'HTTP/1.1 200 OK\r\nContent-Type: audio/mp4\r\n'
+                  'Content-Length: $declared\r\n\r\n'
+              .codeUnits,
+        );
+        socket.add(body);
+        await socket.flush();
+        socket.destroy();
+      });
+      return Uri.parse('http://127.0.0.1:${server.port}/api/stream/x');
+    }
+
+    tearDown(() => server.close());
+
+    test('guarda el archivo solo cuando llega completo', () async {
+      final uri = await serve(declared: 4, body: [1, 2, 3, 4]);
+      final target = File('${root.path}/x.audio');
+
+      await OnlineAudioCache.httpDownload(uri, target);
+
+      expect(await target.readAsBytes(), [1, 2, 3, 4]);
+      expect(await File('${target.path}.part').exists(), isFalse);
+    });
+
+    test('descarta una descarga cortada antes de tiempo', () async {
+      final uri = await serve(declared: 1000, body: [1, 2, 3]);
+      final target = File('${root.path}/x.audio');
+
+      await expectLater(
+        OnlineAudioCache.httpDownload(uri, target),
+        throwsA(isA<IOException>()),
+      );
+      expect(await target.exists(), isFalse);
+      expect(await File('${target.path}.part').exists(), isFalse);
     });
 
     test('las pistas locales se reproducen directo, sin caché', () async {
