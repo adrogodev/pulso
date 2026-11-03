@@ -1,26 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/data_sources/remote/audius_remote_data_source.dart';
-import '../../data/data_sources/remote/internet_archive_remote_data_source.dart';
-import '../../data/data_sources/remote/jamendo_remote_data_source.dart';
-import '../../data/services/audius_music_service.dart';
-import '../../data/services/multi_source_music_service.dart';
-import '../../data/services/source_music_services.dart';
+import '../../data/data_sources/remote/rythmx_remote_data_source.dart';
+import '../../data/services/rythmx_music_service.dart';
 import '../../domain/services/online_music_service.dart';
 import 'online_search_state.dart';
 
-/// `client_id` gratuito de Jamendo; sin él, la fuente no se consulta.
-/// Se pasa al compilar con `--dart-define=JAMENDO_CLIENT_ID=...`.
-const String jamendoClientId = String.fromEnvironment('JAMENDO_CLIENT_ID');
+/// URL base de la API de Rythmx. Se pasa al compilar con
+/// `--dart-define=RYTHMX_API_URL=...`; por defecto apunta al servidor local,
+/// que un teléfono conectado por cable alcanza con
+/// `adb reverse tcp:8000 tcp:8000`.
+const String rythmxApiUrl = String.fromEnvironment(
+  'RYTHMX_API_URL',
+  defaultValue: 'http://localhost:8000',
+);
+
 final onlineMusicServiceProvider = Provider<OnlineMusicService>((ref) {
-  // Solo fuentes que permiten escuchar la canción completa. El orden decide
-  // qué versión se queda ante un duplicado.
-  return MultiSourceMusicService([
-    AudiusMusicService(AudiusRemoteDataSource()),
-    if (jamendoClientId.isNotEmpty)
-      JamendoMusicService(JamendoRemoteDataSource(clientId: jamendoClientId)),
-    InternetArchiveMusicService(InternetArchiveRemoteDataSource()),
-  ]);
+  return RythmxMusicService(RythmxRemoteDataSource(baseUrl: rythmxApiUrl));
 });
 
 final onlineSearchNotifierProvider =

@@ -100,7 +100,7 @@ class _OnlineSearchScreenState extends ConsumerState<OnlineSearchScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
-                'Canciones completas de Audius, Jamendo e Internet Archive, '
+                'Canciones completas del catálogo de YouTube Music, '
                 'gratis y sin anuncios.',
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textSecondary,

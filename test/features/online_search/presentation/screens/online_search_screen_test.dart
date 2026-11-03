@@ -164,10 +164,7 @@ void main() {
       await tester.pumpWidget(_app(const Result.ok([])));
 
       expect(find.text('Busca música en línea'), findsOneWidget);
-      expect(
-        find.textContaining('Audius, Jamendo e Internet Archive'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('catálogo de YouTube Music'), findsOneWidget);
     });
 
     testWidgets('muestra artista, álbum y año de cada resultado', (
