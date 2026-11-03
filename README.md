@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Aplicación de reproducción musical nativa, minimalista y moderna para Android: tu biblioteca local offline y música completa en línea de Audius, Jamendo e Internet Archive, gratis y sin anuncios.</strong>
+  <strong>Aplicación de reproducción musical nativa, minimalista y moderna para Android: tu biblioteca local offline y música completa en línea a través de la API de Rythmx, gratis y sin anuncios.</strong>
 </p>
 
 <p align="center">
@@ -92,7 +92,7 @@ lib/
         ├── data/
         │   ├── data_sources/
         │   │   ├── local/      # MediaStore, SQLite
-        │   │   └── remote/     # APIs HTTP (Audius, Jamendo, Internet Archive)
+        │   │   └── remote/     # API HTTP de Rythmx
         │   ├── dto/            # Respuestas crudas de APIs remotas
         │   ├── mappers/        # DTO → modelos de dominio
         │   └── services/       # Implementaciones de los contratos
@@ -148,15 +148,16 @@ lib/
 - [x] **Búsqueda Integrada:**
   - Búsqueda en tiempo real insensible a mayúsculas, minúsculas y tildes.
   - Filtros por categoría: Todo, Canciones, Álbumes y Artistas.
-- [x] **Música en Línea (varias fuentes):**
-  - Una sola búsqueda consulta en paralelo APIs públicas, gratuitas y sin anuncios, que permiten escuchar las canciones completas:
-    - [Audius](https://audius.co) (artistas independientes), [Jamendo](https://www.jamendo.com) (Creative Commons) e [Internet Archive](https://archive.org/details/audio) (grabaciones antiguas, dominio público y conciertos).
-  - Los resultados se unen sin duplicados y se ordenan por relevancia, primero las canciones del artista buscado. Una fuente caída o lenta (más de 12 s) se omite sin afectar al resto.
-  - Jamendo requiere un `client_id` gratuito de [devportal.jamendo.com](https://devportal.jamendo.com); se pasa al compilar con `--dart-define=JAMENDO_CLIENT_ID=<id>`. Sin él, esa fuente no se consulta.
+- [x] **Música en Línea (API de Rythmx):**
+  - La búsqueda consulta la API propia de Rythmx (`GET /api/search?filter=songs`), que busca en el catálogo de YouTube Music y entrega por cada canción un `stream_url` de audio completo (AAC, con soporte de `Range`).
+  - La URL base se pasa al compilar con `--dart-define=RYTHMX_API_URL=<url>`; por defecto es `http://localhost:8000`.
+  - Con el teléfono conectado por cable y el servidor corriendo en el PC, `adb reverse tcp:8000 tcp:8000` hace que `localhost:8000` del teléfono llegue al servidor. El tráfico sin cifrar solo está permitido hacia `localhost` y `127.0.0.1` (`network_security_config.xml`); otro servidor debe usar HTTPS.
+  - La primera reproducción de una canción tarda unos segundos mientras el servidor la resuelve; después sale de la caché.
   - Reproducción por streaming con el mismo motor de audio, en segundo plano y con carátula en la notificación.
   - Al elegir una canción se abre la vista En reproducción; la canción actual queda resaltada en los resultados y el mini reproductor permite volver a ella.
 - [x] **Caché de Música en Línea:**
-  - Las canciones en línea se guardan mientras suenan en la caché de la app (no en el almacenamiento del dispositivo), así que repetirlas no vuelve a descargarlas.
+  - Una canción en línea suena directo desde la URL de la API, completa y tal cual la entrega el servidor; mientras suena se descarga aparte en la caché de la app (no en el almacenamiento del dispositivo), así que repetirla no vuelve a descargarla.
+  - Solo se reproduce desde la caché una copia completa: una descarga cortada se descarta y la canción vuelve a sonar en línea.
   - Ocupa como máximo 500 MB, borrando primero lo más antiguo, y se puede vaciar desde Ajustes.
 - [x] **Ecualizador:**
   - Una barra por cada banda que ofrece el dispositivo (por ejemplo, de 60 Hz a 14 kHz), con activación y restablecimiento a 0 dB.
@@ -290,7 +291,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
   * `test/features/library/presentation/screens/detail_screens_test.dart`: Vistas en detalle de álbum y artista, botones de reproducción y diálogo de información técnica.
   * `test/features/playback/presentation/screens/expanded_player_screen_test.dart`: Favorito y acceso a la cola desde el reproductor expandido.
 * **Funcionalidades nuevas:**
-  * `test/features/online_search/**`: Fuentes en línea, unión multifuente (duplicados, relevancia, fallos y tiempo límite), controlador con descarte de respuestas viejas y pantalla de búsqueda en línea.
+  * `test/features/online_search/**`: Cliente de la API de Rythmx (contrato, campos opcionales, URLs inválidas y errores), controlador con descarte de respuestas viejas y pantalla de búsqueda en línea.
   * `test/features/equalizer/**`: Persistencia, reaplicación y reversión de cambios del ecualizador, y su pantalla.
   * `test/features/library/domain/use_cases/filter_music_test.dart`: Filtro de notas de voz y audios cortos sin artista.
   * `test/shared/base_data/artwork/artwork_cache_test.dart`: Caché LRU de carátulas.
