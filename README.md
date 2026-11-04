@@ -135,10 +135,12 @@ lib/
   - Reproducir, pausar, siguiente, anterior y desplazamiento temporal interactivo (`seek`).
   - Modo aleatorio (`shuffle`) y modos de repetición (`off`, `all`, `one`).
   - Control de volumen del reproductor.
-  - Pantalla de reproductor expandido con carátula a gran escala, controles completos y acceso a la cola.
+  - Pantalla de reproductor expandido con carátula a gran escala, controles completos, acceso a la cola y botón para añadir la canción que suena a una lista (solo canciones de la biblioteca local).
+  - Tocar en cualquier lista la canción que ya está sonando abre el reproductor expandido en lugar de reiniciarla.
 - [x] **Cola de Reproducción:**
   - Pantalla de gestión de cola interactiva con reordenación manual (`ReorderableListView`).
-  - Eliminación de canciones individuales y vaciado de cola.
+  - Eliminación de canciones individuales y vaciado de cola. Vaciarla también olvida la última sesión, así que al reabrir la app no reaparece la cola anterior.
+  - Tras vaciarla, la cola se arma solo con lo que se escucha: tocar una canción en cualquier lista (biblioteca, búsqueda, en línea, favoritos, listas) la suma al final en lugar de cargar la lista entera, y si ya estaba se salta a ella. Esa cola se conserva al reabrir la app. "Reproducir todo", "Aleatorio" o reproducir una lista o álbum crean una cola nueva y vuelven al comportamiento normal (la lista tocada pasa a ser la cola).
   - Opciones contextuales: "Reproducir a continuación" y "Añadir a la cola".
 - [x] **Listas de Reproducción y Favoritos:**
   - Marcado rápido de canciones favoritas con persistencia local en SQLite.
@@ -155,6 +157,10 @@ lib/
   - La primera reproducción de una canción tarda unos segundos mientras el servidor la resuelve; después sale de la caché.
   - Reproducción por streaming con el mismo motor de audio, en segundo plano y con carátula en la notificación.
   - Al elegir una canción se abre la vista En reproducción; la canción actual queda resaltada en los resultados y el mini reproductor permite volver a ella.
+- [x] **Abrir con Pulso:**
+  - Pulso aparece en el menú "Abrir con" y "Compartir" de Android para cualquier archivo de audio: notas de voz de WhatsApp o Telegram, descargas o audios del gestor de archivos, aunque no estén en la biblioteca.
+  - El audio suena de inmediato y se abre la vista En reproducción, tanto si Pulso estaba cerrado como si ya estaba abierto.
+  - El título sale del nombre del archivo y la duración la informa el reproductor al cargarlo.
 - [x] **Caché de Música en Línea:**
   - Una canción en línea suena directo desde la URL de la API, completa y tal cual la entrega el servidor; mientras suena se descarga aparte en la caché de la app (no en el almacenamiento del dispositivo), así que repetirla no vuelve a descargarla.
   - Solo se reproduce desde la caché una copia completa: una descarga cortada se descarta y la canción vuelve a sonar en línea.
@@ -298,7 +304,7 @@ El proyecto cuenta con una cobertura integral de pruebas que validan cada capa d
 
 **Resultado de la suite de pruebas:**
 ```text
-All tests passed! (134 pruebas exitosas, 0 fallos, 0 errores)
+All tests passed! (181 pruebas exitosas, 0 fallos, 0 errores)
 flutter analyze: No issues found!
 ```
 
@@ -308,3 +314,7 @@ flutter analyze: No issues found!
 
 Desarrollado para el proyecto **Pulso** con arquitectura de alto rendimiento para Android.
 Diseño e ingeniería por [adrogodev](https://github.com/adrogodev).
+
+### Licencias de código abierto
+
+Pulso se apoya en paquetes de código abierto; sus licencias se consultan aquí y no dentro de la app. Las principales dependencias son `flutter_riverpod`, `just_audio`, `just_audio_background`, `audio_session`, `on_audio_query`, `permission_handler`, `sqflite`, `path`, `path_provider`, `go_router` y `uuid` (ver `pubspec.yaml`). La licencia de cada una está en su página de [pub.dev](https://pub.dev) y en su copia local tras `flutter pub get` (carpeta del paquete en la caché de pub).
