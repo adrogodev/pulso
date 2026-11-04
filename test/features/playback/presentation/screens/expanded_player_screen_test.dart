@@ -5,7 +5,9 @@ import 'package:pulso/features/favorites/presentation/controllers/favorites_noti
 import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_state.dart';
 import 'package:pulso/features/playback/presentation/screens/expanded_player_screen.dart';
+import 'package:pulso/features/playlists/presentation/controllers/playlists_notifier.dart';
 import 'package:pulso/features/queue/presentation/screens/queue_screen.dart';
+import 'package:pulso/shared/base_domain/models/playlist.dart';
 import 'package:pulso/shared/base_domain/models/track.dart';
 
 class _TestPlaybackNotifier extends PlaybackNotifier {
@@ -39,17 +41,41 @@ const _track = Track(
   uri: 'uri/7',
 );
 
-Widget _app() => ProviderScope(
-  overrides: [
-    playbackNotifierProvider.overrideWith(
-      () => _TestPlaybackNotifier(
-        const PlaybackState().copyWith(currentTrack: _track, queue: [_track]),
-      ),
+/// Listas en memoria, sin base de datos.
+class _TestPlaylistsNotifier extends PlaylistsNotifier {
+  @override
+  List<Playlist> build() => [
+    Playlist(
+      id: 'p1',
+      name: 'Para correr',
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
     ),
-    favoritesNotifierProvider.overrideWith(_TestFavoritesNotifier.new),
-  ],
-  child: const MaterialApp(home: ExpandedPlayerScreen()),
-);
+  ];
+
+  final List<(String, String)> added = [];
+
+  @override
+  Future<void> addTrack(String playlistId, String trackId) async {
+    added.add((playlistId, trackId));
+  }
+}
+
+Widget _app({Track track = _track, _TestPlaylistsNotifier? playlists}) =>
+    ProviderScope(
+      overrides: [
+        playbackNotifierProvider.overrideWith(
+          () => _TestPlaybackNotifier(
+            const PlaybackState().copyWith(currentTrack: track, queue: [track]),
+          ),
+        ),
+        favoritesNotifierProvider.overrideWith(_TestFavoritesNotifier.new),
+        playlistsNotifierProvider.overrideWith(
+          () => playlists ?? _TestPlaylistsNotifier(),
+        ),
+      ],
+      child: const MaterialApp(home: ExpandedPlayerScreen()),
+    );
 
 void main() {
   group('ExpandedPlayerScreen Widget', () {
@@ -78,5 +104,40 @@ void main() {
 
       expect(find.byType(QueueScreen), findsOneWidget);
     });
+
+    testWidgets('agrega la canción que suena a una lista', (tester) async {
+      final playlists = _TestPlaylistsNotifier();
+      await tester.pumpWidget(_app(playlists: playlists));
+
+      await tester.tap(find.byTooltip('Añadir a una lista'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Para correr'));
+      await tester.pumpAndSettle();
+
+      expect(playlists.added, [('p1', '7')]);
+      expect(find.text('Añadida a "Para correr"'), findsOneWidget);
+    });
+
+    testWidgets(
+      'no ofrece listas para canciones fuera de la biblioteca local',
+      (tester) async {
+        // Las listas guardan ids de la biblioteca: una canción en línea no
+        // se podría volver a encontrar.
+        await tester.pumpWidget(
+          _app(
+            track: const Track(
+              id: 'rythmx:abc',
+              title: 'En línea',
+              artist: 'A',
+              album: 'YouTube Music',
+              durationMs: 1000,
+              uri: 'https://api.ejemplo.com/api/stream/abc',
+            ),
+          ),
+        );
+
+        expect(find.byTooltip('Añadir a una lista'), findsNothing);
+      },
+    );
   });
 }

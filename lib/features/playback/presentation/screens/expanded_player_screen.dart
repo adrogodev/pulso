@@ -7,6 +7,7 @@ import '../widgets/player_controls.dart';
 import '../widgets/progress_bar.dart';
 import '../../../../shared/ui_kit/widgets/track_artwork.dart';
 import '../../../favorites/presentation/controllers/favorites_notifier.dart';
+import '../../../playlists/presentation/widgets/add_to_playlist_dialog.dart';
 import '../../../queue/presentation/screens/queue_screen.dart';
 import '../controllers/playback_notifier.dart';
 
@@ -139,6 +140,20 @@ class ExpandedPlayerScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // Las listas guardan ids de la biblioteca local (numéricos):
+                  // una canción en línea o abierta desde otra app no se podría
+                  // volver a encontrar.
+                  if (trackArtworkId != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.playlist_add_rounded,
+                        color: AppColors.iconMuted,
+                        size: 28,
+                      ),
+                      tooltip: 'Añadir a una lista',
+                      onPressed: () =>
+                          AddToPlaylistDialog.show(context, track: track),
+                    ),
                   IconButton(
                     icon: Icon(
                       isFavorite
