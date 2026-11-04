@@ -34,7 +34,9 @@ void main() {
         expect(find.text('Actualizar biblioteca'), findsOneWidget);
         expect(find.text('Recordar última sesión'), findsOneWidget);
         expect(find.text('Ocultar notas de voz'), findsOneWidget);
-        expect(find.text('Licencias de código abierto'), findsOneWidget);
+        // Las licencias quedan en el repositorio, no dentro de la app.
+        expect(find.text('Licencias de código abierto'), findsNothing);
+        expect(find.text('INFORMACIÓN'), findsNothing);
       },
     );
 

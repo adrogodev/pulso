@@ -217,44 +217,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
-
-          // Sección: Legal y Licencias
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text('INFORMACIÓN', style: AppTypography.labelSmall),
-          ),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.policy_rounded,
-                    color: AppColors.textSecondary,
-                  ),
-                  title: const Text(
-                    'Licencias de código abierto',
-                    style: AppTypography.bodyLarge,
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.iconMuted,
-                  ),
-                  onTap: () {
-                    showLicensePage(
-                      context: context,
-                      applicationName: 'Pulso',
-                      applicationVersion: settings.appVersion,
-                      applicationIcon: const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: PulsoWaveform(width: 48, height: 48),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 40),
         ],
       ),
