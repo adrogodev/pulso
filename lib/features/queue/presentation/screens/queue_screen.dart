@@ -190,7 +190,13 @@ class QueueScreen extends ConsumerWidget {
                       ],
                     ),
                     onTap: () {
-                      notifier.skipToIndex(index);
+                      // La cola se abre desde el reproductor: con la que ya
+                      // suena se vuelve a él en lugar de reiniciarla.
+                      if (isCurrent) {
+                        Navigator.of(context).maybePop();
+                      } else {
+                        notifier.skipToIndex(index);
+                      }
                     },
                   ),
                 );

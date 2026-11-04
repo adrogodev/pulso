@@ -7,6 +7,7 @@ import '../../../../shared/utils/metadata_formatter.dart';
 import '../../../../shared/base_domain/models/album.dart';
 import '../../../../shared/base_domain/models/track.dart';
 import '../../../playback/presentation/widgets/mini_player.dart';
+import '../../../playback/presentation/widgets/now_playing_navigation.dart';
 import '../../../../shared/ui_kit/widgets/pulso_waveform.dart';
 import '../../../../shared/ui_kit/widgets/track_artwork.dart';
 import '../../../../shared/ui_kit/widgets/track_info_dialog.dart';
@@ -249,9 +250,11 @@ class AlbumDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    onTap: () => playbackNotifier.playTracks(
-                      sortedTracks,
-                      initialIndex: index,
+                    onTap: () => playOrOpenNowPlaying(
+                      context,
+                      ref,
+                      sortedTracks[index],
+                      queue: sortedTracks,
                     ),
                   );
                 }),

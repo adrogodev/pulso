@@ -11,6 +11,7 @@ import 'package:pulso/features/library/presentation/controllers/library_state.da
 import 'package:pulso/app/presentation/screens/home_screen.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_state.dart';
+import 'package:pulso/features/playback/presentation/screens/expanded_player_screen.dart';
 
 class MockHomeLibraryNotifier extends LibraryNotifier {
   final LibraryState customState;
@@ -37,6 +38,18 @@ class MockHomePlaybackNotifier extends PlaybackNotifier {
 
   @override
   PlaybackState build() => customState;
+
+  final List<Track> played = [];
+
+  @override
+  Future<void> playTrack(Track track, {List<Track>? inQueue}) async {
+    played.add(track);
+  }
+
+  @override
+  Future<void> playTracks(List<Track> tracks, {int initialIndex = 0}) async {
+    played.add(tracks[initialIndex]);
+  }
 }
 
 void main() {
@@ -146,6 +159,42 @@ void main() {
       expect(find.text('Canción Principal'), findsOneWidget);
       expect(find.text('1 canción • 1 álbum'), findsOneWidget);
     });
+
+    testWidgets(
+      'tocar la canción que suena abre el reproductor en vez de repetirla',
+      (tester) async {
+        final playback = MockHomePlaybackNotifier(
+          const PlaybackState(
+            currentTrack: sampleTrack,
+            queue: [sampleTrack],
+            status: AppPlayerStatus.playing,
+          ),
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              libraryNotifierProvider.overrideWith(
+                () => MockHomeLibraryNotifier(
+                  const LibraryState(tracks: [sampleTrack]),
+                ),
+              ),
+              favoritesNotifierProvider.overrideWith(
+                () => MockHomeFavoritesNotifier(),
+              ),
+              playbackNotifierProvider.overrideWith(() => playback),
+            ],
+            child: const MaterialApp(home: HomeScreen()),
+          ),
+        );
+
+        // El título aparece en la lista y en el mini reproductor.
+        await tester.tap(find.text(sampleTrack.title).first);
+        await tester.pumpAndSettle();
+
+        expect(playback.played, isEmpty);
+        expect(find.byType(ExpandedPlayerScreen), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'muestra mini reproductor acoplado cuando hay una pista activa',

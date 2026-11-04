@@ -7,6 +7,7 @@ import '../../../../shared/ui_kit/widgets/pulso_waveform.dart';
 import '../../../../shared/ui_kit/widgets/track_artwork.dart';
 import '../../../../shared/utils/metadata_formatter.dart';
 import '../../../playback/presentation/controllers/playback_notifier.dart';
+import '../../../playback/presentation/widgets/now_playing_navigation.dart';
 import '../controllers/search_notifier.dart';
 import '../controllers/search_state.dart';
 
@@ -239,9 +240,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 track.formattedDuration,
                 style: AppTypography.labelSmall,
               ),
-              onTap: () {
-                playbackNotifier.playTrack(track, inQueue: result.tracks);
-              },
+              onTap: () => playOrOpenNowPlaying(
+                context,
+                ref,
+                track,
+                queue: result.tracks,
+              ),
             );
           }),
         ],

@@ -12,6 +12,11 @@ class MockQueuePlaybackNotifier extends PlaybackNotifier {
 
   @override
   PlaybackState build() => initialState;
+
+  final List<int> skippedTo = [];
+
+  @override
+  Future<void> skipToIndex(int index) async => skippedTo.add(index);
 }
 
 void main() {
@@ -67,6 +72,77 @@ void main() {
       expect(find.text('Primera Pista'), findsOneWidget);
       expect(find.text('Segunda Pista'), findsOneWidget);
       expect(find.text('2 canciones'), findsOneWidget);
+    });
+
+    group('al tocar una canción', () {
+      const track1 = Track(
+        id: '1',
+        title: 'Primera Pista',
+        artist: 'Artista 1',
+        album: 'Álbum',
+        durationMs: 180000,
+        uri: 'uri/1',
+      );
+      const track2 = Track(
+        id: '2',
+        title: 'Segunda Pista',
+        artist: 'Artista 2',
+        album: 'Álbum',
+        durationMs: 200000,
+        uri: 'uri/2',
+      );
+      late MockQueuePlaybackNotifier playback;
+
+      /// La cola se abre desde el reproductor: se monta encima de otra ruta.
+      Future<void> pumpQueue(WidgetTester tester) async {
+        playback = MockQueuePlaybackNotifier(
+          const PlaybackState().copyWith(
+            currentTrack: track1,
+            queue: [track1, track2],
+            currentIndex: 0,
+          ),
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [playbackNotifierProvider.overrideWith(() => playback)],
+            child: MaterialApp(
+              home: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const QueueScreen(),
+                    ),
+                  ),
+                  child: const Text('reproductor'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('reproductor'));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('la que suena vuelve al reproductor sin reiniciarla', (
+        tester,
+      ) async {
+        await pumpQueue(tester);
+
+        await tester.tap(find.text('Primera Pista'));
+        await tester.pumpAndSettle();
+
+        expect(playback.skippedTo, isEmpty);
+        expect(find.byType(QueueScreen), findsNothing);
+      });
+
+      testWidgets('otra canción salta a ella', (tester) async {
+        await pumpQueue(tester);
+
+        await tester.tap(find.text('Segunda Pista'));
+        await tester.pumpAndSettle();
+
+        expect(playback.skippedTo, [1]);
+      });
     });
   });
 }

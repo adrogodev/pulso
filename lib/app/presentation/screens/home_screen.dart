@@ -8,6 +8,7 @@ import '../../../shared/base_domain/models/album.dart';
 import '../../../shared/base_domain/models/artist.dart';
 import '../../../shared/base_domain/models/track.dart';
 import '../../../features/playback/presentation/widgets/mini_player.dart';
+import '../../../features/playback/presentation/widgets/now_playing_navigation.dart';
 import '../../../shared/ui_kit/widgets/pulso_waveform.dart';
 import '../../../shared/ui_kit/widgets/track_artwork.dart';
 import '../../../shared/ui_kit/widgets/track_info_dialog.dart';
@@ -473,7 +474,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ],
           ),
-          onTap: () => playbackNotifier.playTracks(tracks, initialIndex: index),
+          onTap: () =>
+              playOrOpenNowPlaying(context, ref, track, queue: tracks),
         );
       },
     );

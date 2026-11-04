@@ -5,6 +5,7 @@ import 'package:pulso/shared/ui_kit/theme/app_typography.dart';
 import 'package:pulso/features/favorites/presentation/controllers/favorites_notifier.dart';
 import 'package:pulso/features/library/presentation/controllers/library_notifier.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
+import 'package:pulso/features/playback/presentation/widgets/now_playing_navigation.dart';
 import 'package:pulso/shared/ui_kit/widgets/pulso_waveform.dart';
 import 'package:pulso/shared/ui_kit/widgets/track_artwork.dart';
 
@@ -115,9 +116,12 @@ class FavoritesScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  onTap: () {
-                    playbackNotifier.playTrack(track, inQueue: favoriteTracks);
-                  },
+                  onTap: () => playOrOpenNowPlaying(
+                    context,
+                    ref,
+                    track,
+                    queue: favoriteTracks,
+                  ),
                 );
               },
             ),
