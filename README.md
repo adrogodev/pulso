@@ -17,24 +17,25 @@
 ## Descargar
 
 <p align="center">
-  <a href="releases/pulso-v1.0.0-arm64-v8a.apk?raw=true"><strong>⬇️ Descargar Pulso v1.0.0 (APK, 19,1 MB)</strong></a>
+  <a href="https://github.com/adrogodev/pulso/raw/main/releases/pulso-v0.0.1.apk"><strong>⬇️ Descargar Pulso v0.0.1 (APK, 53,6 MB)</strong></a>
 </p>
 
 | Dato | Valor |
 | :--- | :--- |
-| Archivo | [`releases/pulso-v1.0.0-arm64-v8a.apk`](releases/pulso-v1.0.0-arm64-v8a.apk?raw=true) |
-| Versión | 1.0.0 |
-| Arquitectura | `arm64-v8a` (prácticamente todos los teléfonos Android de los últimos años) |
-| Requisito | Android 5.0 o superior |
-| SHA-256 | `52feb91afdf965e401e154ceb94dbd11a68352521086d77c6511f71c28160b91` |
+| Archivo | [`releases/pulso-v0.0.1.apk`](releases/pulso-v0.0.1.apk?raw=true) |
+| Versión | 0.0.1 ([novedades](CHANGELOG.md)) |
+| Dispositivos | Cualquier teléfono Android: APK universal con `arm64-v8a`, `armeabi-v7a` y `x86_64` |
+| Requisito | Android 7.0 o superior |
+| SHA-256 | `381d2e78cdf6d6e3f614db320003f5dfad22663cf5e6f69d638daa877076d63a` ([`.sha256`](releases/pulso-v0.0.1.apk.sha256)) |
+| Música en línea | Usa la API de Rythmx desplegada en `https://owner-pulsoapi-669sqz-23d6ed-212-47-65-116.sslip.io` |
 
 **Instalación:**
 
-1. Descarga el APK en el teléfono.
+1. Abre el enlace de descarga desde el teléfono y descarga el APK.
 2. Ábrelo y, si Android lo pide, permite instalar aplicaciones de orígenes desconocidos para tu navegador o gestor de archivos.
 3. Al abrir Pulso por primera vez, concede el permiso de acceso a la música.
 
-> El APK está firmado con una clave de desarrollo, no se distribuye por Google Play. Para otras arquitecturas (`armeabi-v7a`, `x86_64`), compílalo con `flutter build apk --release --split-per-abi` (sección 5.4).
+> El APK está firmado con la clave de publicación de Pulso y no se distribuye por Google Play. Si tienes instalada una versión de prueba anterior (firmada con la clave de desarrollo), desinstálala antes de instalar esta; Android no permite actualizar entre firmas distintas.
 
 ---
 
@@ -236,14 +237,18 @@ flutter test --reporter expanded
 # Compilar APK de depuración (Debug APK)
 flutter build apk --debug
 
-# Compilar APK optimizado para distribución (Release APK)
-flutter build apk --release
+# Compilar el APK universal de distribución (el publicado en releases/)
+flutter build apk --release --dart-define=RYTHMX_API_URL=https://owner-pulsoapi-669sqz-23d6ed-212-47-65-116.sslip.io
 
-# Compilar un APK liviano por arquitectura (el publicado en releases/ es arm64-v8a)
-flutter build apk --release --split-per-abi
+# Compilar un APK liviano por arquitectura
+flutter build apk --release --split-per-abi --dart-define=RYTHMX_API_URL=<url-de-la-api>
 ```
 El archivo generado se ubicará en:
 `build/app/outputs/flutter-apk/app-debug.apk` (o `app-release.apk`).
+
+**Firma de publicación:** el APK de release se firma con la clave indicada en `android/key.properties` (`storePassword`, `keyPassword`, `keyAlias`, `storeFile`), que junto con el archivo `.jks` está fuera de git. Sin ese archivo, el build de release usa la clave de depuración. Todas las versiones publicadas deben firmarse con la misma clave para que Android permita actualizar la app.
+
+**Publicar una versión:** subir `version` en `pubspec.yaml` y `appVersion` en `settings_state.dart`, anotar los cambios en `CHANGELOG.md`, compilar el APK universal, copiarlo a `releases/pulso-vX.Y.Z.apk` con su `.sha256` y crear el tag `vX.Y.Z`.
 
 ### 5.5. Ejecutar en dispositivo físico o emulador
 ```bash
