@@ -11,7 +11,8 @@ class SettingsState {
   const SettingsState({
     this.restoreLastSession = true,
     this.hideShortClips = true,
-    this.appVersion = '1.0.0',
+    // Mantener en sincronía con `version` de pubspec.yaml.
+    this.appVersion = '0.0.1',
   });
 
   SettingsState copyWith({
