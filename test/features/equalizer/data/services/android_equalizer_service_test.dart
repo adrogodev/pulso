@@ -53,6 +53,9 @@ class _FakeSettings implements SettingsRepository {
   @override
   Future<Result<void>> saveLastSession(String trackId, int positionMs) async =>
       const Result.ok(null);
+
+  @override
+  Future<Result<void>> clearLastSession() async => const Result.ok(null);
 }
 
 void main() {

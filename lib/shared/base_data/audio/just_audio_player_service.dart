@@ -107,6 +107,8 @@ class JustAudioPlayerService implements AudioPlayerService {
     _currentTracks = List.unmodifiable(tracks);
     if (tracks.isEmpty) {
       await _player.stop();
+      // Sin esto la notificación seguía ofreciendo la cola anterior.
+      await _player.clearAudioSources();
       return;
     }
 

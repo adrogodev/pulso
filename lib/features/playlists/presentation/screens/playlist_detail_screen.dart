@@ -61,9 +61,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             IconButton(
               icon: const Icon(Icons.play_circle_fill_rounded, size: 30),
               tooltip: 'Reproducir lista',
-              onPressed: () {
-                playbackNotifier.playTrack(_tracks.first, inQueue: _tracks);
-              },
+              onPressed: () => playbackNotifier.playTracks(_tracks),
             ),
         ],
       ),

@@ -6,4 +6,7 @@ abstract class SettingsRepository {
   Future<Result<void>> setPreference(String key, String value);
   Future<Result<Map<String, dynamic>?>> getLastSession();
   Future<Result<void>> saveLastSession(String trackId, int positionMs);
+
+  /// Olvida la última sesión: al reabrir la app no se restaura nada.
+  Future<Result<void>> clearLastSession();
 }

@@ -42,12 +42,7 @@ class FavoritesScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.play_circle_fill_rounded, size: 32),
               tooltip: 'Reproducir todo',
-              onPressed: () {
-                playbackNotifier.playTrack(
-                  favoriteTracks.first,
-                  inQueue: favoriteTracks,
-                );
-              },
+              onPressed: () => playbackNotifier.playTracks(favoriteTracks),
             ),
         ],
       ),

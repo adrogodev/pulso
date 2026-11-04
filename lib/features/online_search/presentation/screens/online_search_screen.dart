@@ -186,9 +186,7 @@ class _OnlineSearchScreenState extends ConsumerState<OnlineSearchScreen> {
   void _play(Track track, List<Track> results, {required bool isCurrent}) {
     if (!isCurrent) {
       // Los resultados quedan como cola para seguir con la siguiente pista.
-      ref
-          .read(playbackNotifierProvider.notifier)
-          .playTrack(track, inQueue: results);
+      ref.read(playbackNotifierProvider.notifier).playFromList(track, results);
     }
     _openNowPlaying();
   }

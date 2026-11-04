@@ -38,5 +38,13 @@ void main() {
       expect(session!['trackId'], 'track-100');
       expect(session['positionMs'], 45000);
     });
+
+    test('olvida la última sesión guardada', () async {
+      await repository.saveLastSession('track-100', 45000);
+
+      await repository.clearLastSession();
+
+      expect((await repository.getLastSession()).dataOrNull, isNull);
+    });
   });
 }

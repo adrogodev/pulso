@@ -69,4 +69,18 @@ class SettingsRepositoryImpl implements SettingsRepository {
       );
     }
   }
+
+  @override
+  Future<Result<void>> clearLastSession() async {
+    try {
+      // Sin id, getLastSession no encuentra sesión que restaurar.
+      await _dbService.setPreference('last_session_track_id', '');
+      await _dbService.setPreference('last_session_position_ms', '0');
+      return const Result.ok(null);
+    } catch (e) {
+      return Result.err(
+        StorageFailure('Error al borrar la última sesión', cause: e),
+      );
+    }
+  }
 }

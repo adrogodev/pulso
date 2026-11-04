@@ -7,6 +7,9 @@ import 'package:pulso/shared/base_domain/models/track.dart';
 import 'package:pulso/features/playback/presentation/controllers/playback_notifier.dart';
 import 'package:pulso/features/settings/domain/services/settings_repository.dart';
 import 'package:pulso/features/settings/presentation/controllers/settings_notifier.dart';
+import 'package:pulso/features/favorites/presentation/controllers/favorites_notifier.dart'
+    show databaseServiceProvider;
+import 'package:pulso/shared/base_data/database/memory_database_service.dart';
 
 class MockAudioPlayerService implements AudioPlayerService {
   final _statusController = StreamController<AppPlayerStatus>.broadcast();
@@ -278,6 +281,124 @@ void main() {
       final state = container.read(playbackNotifierProvider);
       expect(state.queue, isEmpty);
       expect(state.currentTrack, isNull);
+      // El reproductor también suelta las pistas: si no, la notificación o
+      // los auriculares podían retomar la cola vieja.
+      expect(mockAudioService.queue, isEmpty);
+    });
+
+    test('tras vaciar la cola, se arma una nueva desde cero', () async {
+      final notifier = container.read(playbackNotifierProvider.notifier);
+      await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+      await notifier.clearQueue();
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.addToQueue(trackB);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(playbackNotifierProvider);
+      expect(state.queue, [trackB]);
+      expect(state.currentTrack, trackB);
+    });
+
+    group('tocar una canción de una lista', () {
+      const trackC = Track(
+        id: '3',
+        title: 'Pista Gamma',
+        artist: 'Artista 3',
+        album: 'Álbum 3',
+        durationMs: 200000,
+        uri: 'uri/gamma',
+      );
+      const library = [trackA, trackB, trackC];
+
+      Future<PlaybackNotifier> clearedQueue() async {
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(trackA, inQueue: library);
+        await notifier.clearQueue();
+        await Future<void>.delayed(Duration.zero);
+        return notifier;
+      }
+
+      test('sin vaciar la cola, usa la lista como cola', () async {
+        final notifier = container.read(playbackNotifierProvider.notifier);
+
+        await notifier.playFromList(trackB, library);
+
+        final state = container.read(playbackNotifierProvider);
+        expect(state.queue, library);
+        expect(state.currentTrack, trackB);
+      });
+
+      test(
+        'tras vaciar, suma cada canción que se escucha en vez de cargar la lista',
+        () async {
+          final notifier = await clearedQueue();
+
+          await notifier.playFromList(trackB, library);
+          await notifier.playFromList(trackC, library);
+          await Future<void>.delayed(Duration.zero);
+
+          final state = container.read(playbackNotifierProvider);
+          expect(state.queue, [trackB, trackC]);
+          expect(state.currentTrack, trackC);
+          expect(mockAudioService.queue, [trackB, trackC]);
+          expect(mockAudioService.isPlaying, isTrue);
+        },
+      );
+
+      test('tras vaciar, una que ya está en la cola salta a ella', () async {
+        final notifier = await clearedQueue();
+        await notifier.playFromList(trackB, library);
+        await notifier.playFromList(trackC, library);
+
+        await notifier.playFromList(trackB, library);
+        await Future<void>.delayed(Duration.zero);
+
+        final state = container.read(playbackNotifierProvider);
+        expect(state.queue, [trackB, trackC]);
+        expect(state.currentTrack, trackB);
+      });
+
+      test('reproducir todo crea una cola nueva y vuelve al modo normal', () async {
+        final notifier = await clearedQueue();
+        await notifier.playFromList(trackB, library);
+
+        await notifier.playTracks([trackA, trackB]);
+        await notifier.playFromList(trackC, library);
+
+        expect(container.read(playbackNotifierProvider).queue, library);
+      });
+
+      test('la cola armada a mano vuelve al reabrir la app', () async {
+        final db = MemoryDatabaseService();
+        await db.initialize();
+        ProviderContainer open() => ProviderContainer(
+          overrides: [
+            audioPlayerServiceProvider.overrideWithValue(
+              MockAudioPlayerService(),
+            ),
+            databaseServiceProvider.overrideWithValue(db),
+          ],
+        );
+
+        final first = open();
+        final notifier = first.read(playbackNotifierProvider.notifier);
+        await notifier.clearQueue();
+        await notifier.playFromList(trackB, library);
+        await notifier.playFromList(trackC, library);
+        await notifier.saveSession();
+        first.dispose();
+
+        final second = open();
+        addTearDown(second.dispose);
+        await second
+            .read(playbackNotifierProvider.notifier)
+            .restoreSession(library);
+
+        final state = second.read(playbackNotifierProvider);
+        expect(state.queue, [trackB, trackC]);
+        expect(state.currentTrack, trackC);
+      });
     });
 
     group('última sesión', () {
@@ -369,6 +490,18 @@ void main() {
 
         final saved = (await settingsRepo().getLastSession()).dataOrNull;
         expect(saved, {'trackId': '2', 'positionMs': 0});
+      });
+
+      test('vaciar la cola olvida la sesión: al reabrir no vuelve', () async {
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(trackB, inQueue: [trackA, trackB]);
+        await notifier.saveSession();
+
+        await notifier.clearQueue();
+        await notifier.restoreSession([trackA, trackB]);
+
+        expect((await settingsRepo().getLastSession()).dataOrNull, isNull);
+        expect(container.read(playbackNotifierProvider).currentTrack, isNull);
       });
 
       test('restaurar no sobrescribe la posición guardada', () async {

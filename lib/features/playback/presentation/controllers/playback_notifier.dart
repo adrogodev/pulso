@@ -42,7 +42,14 @@ final playbackNotifierProvider =
     NotifierProvider<PlaybackNotifier, PlaybackState>(PlaybackNotifier.new);
 
 class PlaybackNotifier extends Notifier<PlaybackState> {
+  static const _buildingQueueKey = 'queue_built_by_hand';
+  static const _queueIdsKey = 'last_session_queue';
+
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+
+  /// Tras vaciar la cola, se arma solo con lo que se va escuchando, hasta que
+  /// el usuario crea una nueva con "Reproducir todo".
+  bool _buildingQueue = false;
 
   AudioPlayerService get _audioService => ref.read(audioPlayerServiceProvider);
   SettingsRepository get _settingsRepo => ref.read(settingsRepositoryProvider);
@@ -57,7 +64,18 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     });
 
     _initListeners();
+    unawaited(_loadBuildingQueue());
     return const PlaybackState();
+  }
+
+  Future<void> _loadBuildingQueue() async {
+    final saved = await _settingsRepo.getPreference(_buildingQueueKey);
+    _buildingQueue = saved.dataOrNull == 'true';
+  }
+
+  Future<void> _setBuildingQueue(bool value) async {
+    _buildingQueue = value;
+    await _settingsRepo.setPreference(_buildingQueueKey, '$value');
   }
 
   void _initListeners() {
@@ -138,9 +156,18 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       track.id,
       state.position.inMilliseconds,
     );
+    // Una cola armada a mano no se puede rehacer desde la biblioteca: se
+    // guardan sus pistas locales.
+    if (_buildingQueue) {
+      await _settingsRepo.setPreference(
+        _queueIdsKey,
+        state.queue.where((t) => !t.isRemote).map((t) => t.id).join('\n'),
+      );
+    }
   }
 
-  /// Carga en pausa la última pista guardada, con la biblioteca como cola.
+  /// Carga en pausa la última pista guardada. La cola es la biblioteca, o la
+  /// que el usuario armó a mano si había vaciado la anterior.
   Future<void> restoreSession(List<Track> library) async {
     if (state.hasTrack || library.isEmpty) return;
 
@@ -150,16 +177,17 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     if (enabled.dataOrNull == 'false') return;
 
     final session = (await _settingsRepo.getLastSession()).dataOrNull;
-    final index = library.indexWhere((t) => t.id == session?['trackId']);
+    final queue = await _restorableQueue(library);
+    final index = queue.indexWhere((t) => t.id == session?['trackId']);
     // El usuario pudo empezar a reproducir mientras se leía la sesión.
     if (index < 0 || state.hasTrack) return;
 
-    final track = library[index];
+    final track = queue[index];
     final positionMs = session?['positionMs'];
     final position = Duration(milliseconds: positionMs is int ? positionMs : 0);
     final previous = state;
     state = state.copyWith(
-      queue: library,
+      queue: queue,
       currentIndex: index,
       currentTrack: track,
       duration: track.duration,
@@ -167,7 +195,7 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       status: AppPlayerStatus.paused,
     );
     try {
-      await _audioService.setQueue(library, initialIndex: index);
+      await _audioService.setQueue(queue, initialIndex: index);
       await _audioService.seek(position);
     } catch (e) {
       // Si el archivo ya no se puede abrir, no se muestra una pista que el
@@ -175,6 +203,35 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       debugPrint('No se pudo restaurar la última sesión: $e');
       state = previous;
     }
+  }
+
+  Future<List<Track>> _restorableQueue(List<Track> library) async {
+    _buildingQueue =
+        (await _settingsRepo.getPreference(_buildingQueueKey)).dataOrNull ==
+        'true';
+    if (!_buildingQueue) return library;
+
+    final saved = (await _settingsRepo.getPreference(_queueIdsKey)).dataOrNull;
+    final byId = {for (final track in library) track.id: track};
+    return [
+      for (final id in saved?.split('\n') ?? const <String>[])
+        if (byId[id] != null) byId[id]!,
+    ];
+  }
+
+  /// Reproduce una canción tocada en una lista.
+  ///
+  /// Normalmente la lista entera pasa a ser la cola. Si el usuario vació la
+  /// cola, en cambio, la canción se suma al final (o se salta a ella si ya
+  /// estaba), para que la cola sea solo lo que va escuchando.
+  Future<void> playFromList(Track track, List<Track> list) async {
+    if (!_buildingQueue) return playTrack(track, inQueue: list);
+
+    final index = state.queue.indexWhere((t) => t.id == track.id);
+    if (index < 0) return playTrack(track, inQueue: [...state.queue, track]);
+
+    await _audioService.skipToIndex(index);
+    await _audioService.play();
   }
 
   Future<void> playTrack(Track track, {List<Track>? inQueue}) async {
@@ -319,8 +376,11 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     }
   }
 
+  /// "Reproducir todo": crea una cola nueva con [tracks] y deja de armarla a
+  /// mano.
   Future<void> playTracks(List<Track> tracks, {int initialIndex = 0}) async {
     if (tracks.isEmpty) return;
+    await _setBuildingQueue(false);
     final safeIndex = (initialIndex >= 0 && initialIndex < tracks.length)
         ? initialIndex
         : 0;
@@ -349,8 +409,11 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
     await _audioService.setQueue(newQueue, initialIndex: state.currentIndex);
   }
 
+  /// Deja la cola en cero: descarga las pistas del reproductor y olvida la
+  /// última sesión, para que al reabrir la app no reaparezca la cola vieja.
   Future<void> clearQueue() async {
-    await _audioService.stop();
+    // El estado se vacía primero: así los eventos que emita el reproductor al
+    // soltar las pistas no encuentran una cola de la que reponerlas.
     state = state.copyWith(
       queue: const [],
       clearCurrentTrack: true,
@@ -359,5 +422,9 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
       duration: Duration.zero,
       status: AppPlayerStatus.idle,
     );
+    await _audioService.setQueue(const []);
+    await _settingsRepo.clearLastSession();
+    await _settingsRepo.setPreference(_queueIdsKey, '');
+    await _setBuildingQueue(true);
   }
 }
