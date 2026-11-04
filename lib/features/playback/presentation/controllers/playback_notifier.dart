@@ -98,7 +98,9 @@ class PlaybackNotifier extends Notifier<PlaybackState> {
           state = state.copyWith(
             currentIndex: index,
             currentTrack: current,
-            duration: current.duration,
+            // Con la misma pista se conserva la duración que ya informó el
+            // reproductor: un audio externo llega sin duración propia.
+            duration: changed ? current.duration : null,
             position: changed ? Duration.zero : null,
           );
           unawaited(saveSession());

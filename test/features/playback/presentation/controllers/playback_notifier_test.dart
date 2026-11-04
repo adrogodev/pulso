@@ -174,6 +174,43 @@ void main() {
       expect(state.currentIndex, 0);
     });
 
+    test(
+      'conserva la duración que informa el reproductor si la pista no la trae',
+      () async {
+        const external = Track(
+          id: 'external:content://a/1',
+          title: 'Nota',
+          artist: Track.unknownArtist,
+          album: 'Audio externo',
+          durationMs: 0,
+          uri: 'content://a/1',
+        );
+        final notifier = container.read(playbackNotifierProvider.notifier);
+        await notifier.playTrack(external);
+
+        mockAudioService._durationController.add(const Duration(seconds: 95));
+        await Future<void>.delayed(Duration.zero);
+        // just_audio vuelve a emitir el índice actual al cargar la pista.
+        mockAudioService._currentIndexController.add(0);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          container.read(playbackNotifierProvider).duration,
+          const Duration(seconds: 95),
+        );
+      },
+    );
+
+    test('al pasar a otra pista toma su duración', () async {
+      final notifier = container.read(playbackNotifierProvider.notifier);
+      await notifier.playTrack(trackA, inQueue: [trackA, trackB]);
+
+      await notifier.skipToNext();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(playbackNotifierProvider).duration, trackB.duration);
+    });
+
     test('alterna reproducción y pausa', () async {
       final notifier = container.read(playbackNotifierProvider.notifier);
       await notifier.playTrack(trackA);
